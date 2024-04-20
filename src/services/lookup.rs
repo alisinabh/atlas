@@ -1,3 +1,4 @@
+use super::bad_request;
 use crate::network_utils::SpecialIPCheck;
 use crate::schemas::{GeoLocation, LookupResponse};
 
@@ -16,9 +17,9 @@ async fn handle(
         .into_inner()
         .split(',')
         .map(|ip_address| {
-            ip_address.parse().map_err(|_| {
-                HttpResponse::BadRequest().body(format!("Invalid IP Address {:?}", ip_address))
-            })
+            ip_address
+                .parse()
+                .map_err(|_| bad_request(format!("Invalid IP Address {:?}", ip_address)))
         })
         .collect()
     {
@@ -27,14 +28,14 @@ async fn handle(
     };
 
     if ip_addresses.len() > 50 {
-        return HttpResponse::BadRequest().body("Too many IP Addresses");
+        return bad_request("Too many IP Addresses".to_string());
     }
 
     let ip_addresses = match ip_addresses
         .iter()
         .map(|&ip| {
             if ip.is_special_ip() {
-                Err(HttpResponse::BadRequest().body(format!("IP Address is not allowed: {}", ip)))
+                Err(bad_request(format!("IP Address is not allowed: {}", ip)))
             } else {
                 Ok(ip)
             }
