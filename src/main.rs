@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
-use std::net::{AddrParseError, IpAddr};
+use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use tokio::fs::File;
@@ -119,16 +119,21 @@ async fn lookup(
     data: web::Data<Arc<RwLock<Reader<Vec<u8>>>>>,
     path: web::Path<String>,
 ) -> impl Responder {
-    let Ok(ip_addresses): Result<Vec<IpAddr>, AddrParseError> = path
+    let ip_addresses: Vec<IpAddr> = match path
         .into_inner()
         .split(",")
-        .map(|ip_address| ip_address.parse())
+        .map(|ip_address| {
+            ip_address.parse().map_err(|_| {
+                HttpResponse::BadRequest().body(format!("Invalid IP Address {:?}", ip_address))
+            })
+        })
         .collect()
-    else {
-        return HttpResponse::BadRequest().body("Invalid IP Address");
+    {
+        Ok(ip_address) => ip_address,
+        Err(e) => return e,
     };
 
-    if ip_addresses.len() > 5000 {
+    if ip_addresses.len() > 50 {
         return HttpResponse::BadRequest().body("Too many IP Addresses");
     }
 
@@ -166,29 +171,39 @@ async fn health_check() -> impl Responder {
     HttpResponse::Ok().body("Ok")
 }
 
-async fn update_db_periodically(data: web::Data<Arc<RwLock<Reader<Vec<u8>>>>>, interval: u64) -> ! {
+async fn update_db_periodically(
+    data: web::Data<Arc<RwLock<Reader<Vec<u8>>>>>,
+    db_variant: String,
+    interval: u64,
+) -> ! {
     loop {
-        let timeout = match update_db(&data).await {
-            Ok(_) => interval,
+        let duration = match update_db(&data, &db_variant).await {
+            Ok(_) => Duration::from_secs(interval),
             Err(err) => {
                 println!("Failed to update database {:?}", err);
-                60
+                Duration::from_secs(5 * 60)
             }
         };
 
-        sleep(Duration::from_secs(timeout)).await;
+        sleep(duration).await;
     }
 }
 
-const DB_UPDATE_URL: &str =
-    "https://download.maxmind.com/geoip/databases/GeoLite2-Country/download?suffix=tar.gz";
+const DEFAULT_DB_URL: &str =
+    "https://download.maxmind.com/geoip/databases/{VARIANT}/download?suffix=tar.gz";
 
-async fn update_db(data: &web::Data<Arc<RwLock<Reader<Vec<u8>>>>>) -> Result<(), Box<dyn Error>> {
+async fn update_db(
+    data: &web::Data<Arc<RwLock<Reader<Vec<u8>>>>>,
+    db_variant: &str,
+) -> Result<(), Box<dyn Error>> {
     println!("Updating GeoIP Database...");
 
     let db_path = env::var("DB_PATH").unwrap_or("".to_string());
 
-    let db_download_url = env::var("MAXMIND_DB_DOWNLOAD_URL").unwrap_or(DB_UPDATE_URL.to_string());
+    let db_download_url = env::var("MAXMIND_DB_DOWNLOAD_URL")
+        .unwrap_or(DEFAULT_DB_URL.to_string())
+        .replace("{VARIANT}", db_variant);
+
     let account_id = env::var("MAXMIND_ACCOUNT_ID")
         .map_err(|_| "MAXMIND_ACCOUNT_ID env var not set".to_string())?;
     let license_key = env::var("MAXMIND_LICENSE_KEY")
@@ -216,7 +231,7 @@ async fn update_db(data: &web::Data<Arc<RwLock<Reader<Vec<u8>>>>>) -> Result<(),
     Ok(())
 }
 
-async fn extract_db(path: &str, filename: &str) -> Result<(), Box<dyn Error>> {
+async fn extract_db(path: &str, filename: &str) -> Result<String, Box<dyn Error>> {
     let full_path = PathBuf::from(path).join(filename);
 
     let output = Command::new("tar")
@@ -232,11 +247,9 @@ async fn extract_db(path: &str, filename: &str) -> Result<(), Box<dyn Error>> {
 
     tokio::fs::remove_file(full_path).await?;
 
-    let extracted_filename = &String::from_utf8(output.stderr)?.replace("\n", "")[2..];
+    let extracted_filename = String::from_utf8(output.stderr)?.replace("\n", "")[2..].to_string();
 
-    println!("{:?}", extracted_filename);
-
-    Ok(())
+    Ok(extracted_filename)
 }
 
 async fn download_with_basic_auth(
@@ -295,6 +308,8 @@ async fn download_with_basic_auth(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let db_variant = env::var("MAXMIND_DB_VARIANT").unwrap_or("GeoLite2-City".to_string());
+
     let init_db_path = Path::new("database-init.mmdb");
     let reader = Reader::open_readfile(init_db_path).expect("Unable to open IP database");
 
@@ -307,7 +322,9 @@ async fn main() -> std::io::Result<()> {
 
     let reader_data_clone = reader_data.clone();
     // Spawn the periodic update task
-    tokio::spawn(async move { update_db_periodically(reader_data_clone, update_interval).await });
+    tokio::spawn(async move {
+        update_db_periodically(reader_data_clone, db_variant, update_interval).await
+    });
 
     let host = env::var("HOST").unwrap_or("0.0.0.0".to_string());
     let port: u16 = env::var("PORT")
