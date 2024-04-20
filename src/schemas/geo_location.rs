@@ -6,7 +6,7 @@ pub struct GeoLocation<'a> {
     city: Option<City<'a>>,
     country: Option<Country<'a>>,
     postal: Option<Postal<'a>>,
-    subdibisions: Option<Vec<Subdivision<'a>>>,
+    subdivisions: Option<Vec<Subdivision<'a>>>,
 }
 
 impl<'a> GeoLocation<'a> {
@@ -15,7 +15,7 @@ impl<'a> GeoLocation<'a> {
             city: City::from_maxmind(city.city),
             country: Country::from_maxmind(city.country),
             postal: Postal::from_maxmind(city.postal),
-            subdibisions: city.subdivisions.map(|sub| {
+            subdivisions: city.subdivisions.map(|sub| {
                 sub.into_iter()
                     .map(|sub| Subdivision::from_maxmind(Some(sub)).unwrap())
                     .collect()
