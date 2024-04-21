@@ -41,7 +41,7 @@ pub async fn download_with_basic_auth(
         .and_then(|cd| {
             cd.to_str().ok()?.split(';').find_map(|s| {
                 if s.trim().starts_with("filename=") {
-                    Some(s.trim_start_matches("filename=").trim_matches('"'))
+                    Some(s.trim().trim_start_matches("filename=").trim_matches('"'))
                 } else {
                     None
                 }
@@ -57,9 +57,13 @@ pub async fn download_with_basic_auth(
 
     let full_path = PathBuf::from(output_path).join(&filename);
 
-    if tokio::fs::try_exists(&full_path).await? {
+    let dir_path = PathBuf::from(output_path).join(filename.trim_end_matches(".tar.gz"));
+
+    if tokio::fs::try_exists(&dir_path).await? {
         return Err(AlreadyDownloaded.into());
     }
+
+    println!("Saving db in {}", full_path.to_str().unwrap());
 
     // Stream the body of the response
     let mut file = File::create(full_path).await?;
@@ -81,11 +85,14 @@ pub async fn extract_db(path: &str, filename: &str) -> Result<String, Box<dyn Er
     let output = Command::new("tar")
         .arg("xvfz")
         .arg(&full_path)
+        .arg("-C")
+        .arg(path)
         .arg("*.mmdb")
         .output()
         .await?;
 
     if !output.status.success() {
+        println!("{:?}", output);
         return Err("failed to extract archive".into());
     }
 

@@ -16,6 +16,12 @@ async fn main() -> Result<()> {
     let db_variant = env::var("MAXMIND_DB_VARIANT").unwrap_or("GeoLite2-City".to_string());
     let db_path = env::var("DB_PATH").unwrap_or("db/".to_string());
 
+    if !tokio::fs::try_exists(&db_path).await.unwrap() {
+        tokio::fs::create_dir_all(&db_path)
+            .await
+            .expect("Failed to create database directory");
+    }
+
     let update_interval: u64 = env::var("DB_UPDATE_INTERVAL_SECONDS")
         .unwrap_or("86400".to_string())
         .parse()

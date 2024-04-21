@@ -81,8 +81,8 @@ impl MaxmindDB {
 
         extract_db(output_path, &downloaded_filename).await?;
 
-        let db_file_name = downloaded_filename.replace(".tar.gz", ".mmdb");
-        let db_full_path = PathBuf::from(output_path).join(db_file_name);
+        let db_dir_name = downloaded_filename.trim_end_matches(".tar.gz");
+        let db_full_path = PathBuf::from(output_path).join(db_dir_name);
 
         Ok(db_full_path)
     }
