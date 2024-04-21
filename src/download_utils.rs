@@ -63,7 +63,7 @@ pub async fn download_with_basic_auth(
         return Err(AlreadyDownloaded.into());
     }
 
-    println!("Saving db in {}", full_path.to_str().unwrap());
+    println!("Saving database in {}", full_path.to_str().unwrap());
 
     // Stream the body of the response
     let mut file = File::create(full_path).await?;
