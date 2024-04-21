@@ -1,0 +1,97 @@
+use core::fmt;
+use futures_util::StreamExt;
+use std::error::Error;
+use std::path::PathBuf;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
+
+#[derive(Debug)]
+pub struct AlreadyDownloaded;
+
+impl fmt::Display for AlreadyDownloaded {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for AlreadyDownloaded {}
+
+pub async fn download_with_basic_auth(
+    url: &str,
+    output_path: &str,
+    username: &str,
+    password: Option<&str>,
+) -> Result<String, Box<dyn Error>> {
+    let response = reqwest::Client::new()
+        .get(url)
+        .basic_auth(username, password)
+        .send()
+        .await?;
+
+    // Check if the request was successful
+    if !response.status().is_success() {
+        return Err(format!("Bad download response status code: {}", response.status()).into());
+    }
+
+    // Extract filename from Content-Disposition header
+    let filename = response
+        .headers()
+        .get(reqwest::header::CONTENT_DISPOSITION)
+        .and_then(|cd| {
+            cd.to_str().ok()?.split(';').find_map(|s| {
+                if s.trim().starts_with("filename=") {
+                    Some(s.trim_start_matches("filename=").trim_matches('"'))
+                } else {
+                    None
+                }
+            })
+        })
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Content-Disposition header missing or invalid",
+            )
+        })?
+        .to_string();
+
+    let full_path = PathBuf::from(output_path).join(&filename);
+
+    if tokio::fs::try_exists(&full_path).await? {
+        return Err(AlreadyDownloaded.into());
+    }
+
+    // Stream the body of the response
+    let mut file = File::create(full_path).await?;
+    let mut stream = response.bytes_stream();
+
+    while let Some(item) = stream.next().await {
+        let chunk = item?;
+        file.write_all(&chunk).await?;
+    }
+
+    file.flush().await?;
+
+    Ok(filename)
+}
+
+pub async fn extract_db(path: &str, filename: &str) -> Result<String, Box<dyn Error>> {
+    let full_path = PathBuf::from(path).join(filename);
+
+    let output = Command::new("tar")
+        .arg("xvfz")
+        .arg(&full_path)
+        .arg("*.mmdb")
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        return Err("failed to extract archive".into());
+    }
+
+    tokio::fs::remove_file(full_path).await?;
+
+    let extracted_filename = String::from_utf8(output.stderr)?.replace('\n', "")[2..].to_string();
+
+    Ok(extracted_filename)
+}

@@ -1,3 +1,4 @@
+mod download_utils;
 mod maxmind_db;
 mod maxmind_db_updater;
 mod network_utils;

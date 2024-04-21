@@ -1,10 +1,6 @@
-use core::fmt;
-use futures_util::StreamExt;
+use crate::download_utils::*;
 use maxminddb::Reader;
 use std::{env, error::Error, path::PathBuf};
-use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
-use tokio::process::Command;
 use tokio::sync::RwLock;
 
 const DEFAULT_DB_URL: &str =
@@ -16,17 +12,6 @@ pub struct MaxmindDB {
     pub variant: String,
     base_path: String,
 }
-
-#[derive(Debug)]
-struct DBAlreadyExists;
-
-impl fmt::Display for DBAlreadyExists {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::error::Error for DBAlreadyExists {}
 
 impl MaxmindDB {
     pub async fn init(variant: String, base_path: String) -> Result<Self, Box<dyn Error>> {
@@ -54,8 +39,8 @@ impl MaxmindDB {
     pub async fn update_db(&self) -> Result<(), Box<dyn Error>> {
         let latest_db_path = match Self::fetch_latest_db(&self.variant, &self.base_path).await {
             Ok(path) => path,
-            Err(error) => match error.downcast_ref::<DBAlreadyExists>() {
-                Some(DBAlreadyExists) => return Ok(()),
+            Err(error) => match error.downcast_ref::<AlreadyDownloaded>() {
+                Some(AlreadyDownloaded) => return Ok(()),
                 None => return Err(error),
             },
         };
@@ -86,7 +71,7 @@ impl MaxmindDB {
         let license_key = env::var("MAXMIND_LICENSE_KEY")
             .map_err(|_| "MAXMIND_LICENSE_KEY env var not set".to_string())?;
 
-        let downloaded_filename = Self::download_with_basic_auth(
+        let downloaded_filename = download_with_basic_auth(
             &db_download_url,
             output_path,
             &account_id,
@@ -94,7 +79,7 @@ impl MaxmindDB {
         )
         .await?;
 
-        Self::extract_db(output_path, &downloaded_filename).await?;
+        extract_db(output_path, &downloaded_filename).await?;
 
         let db_file_name = downloaded_filename.replace(".tar.gz", ".mmdb");
         let db_full_path = PathBuf::from(output_path).join(db_file_name);
@@ -102,7 +87,7 @@ impl MaxmindDB {
         Ok(db_full_path)
     }
 
-    async fn get_latest_variant(
+    pub async fn get_latest_variant(
         variant: &str,
         db_path: &str,
     ) -> Result<Option<PathBuf>, Box<dyn Error>> {
@@ -122,85 +107,5 @@ impl MaxmindDB {
         }
 
         Ok(db_versions.iter().max().cloned())
-    }
-
-    async fn download_with_basic_auth(
-        url: &str,
-        output_path: &str,
-        username: &str,
-        password: Option<&str>,
-    ) -> Result<String, Box<dyn Error>> {
-        let response = reqwest::Client::new()
-            .get(url)
-            .basic_auth(username, password)
-            .send()
-            .await?;
-
-        // Check if the request was successful
-        if !response.status().is_success() {
-            return Err(format!("Bad download response status code: {}", response.status()).into());
-        }
-
-        // Extract filename from Content-Disposition header
-        let filename = response
-            .headers()
-            .get(reqwest::header::CONTENT_DISPOSITION)
-            .and_then(|cd| {
-                cd.to_str().ok()?.split(';').find_map(|s| {
-                    if s.trim().starts_with("filename=") {
-                        Some(s.trim_start_matches("filename=").trim_matches('"'))
-                    } else {
-                        None
-                    }
-                })
-            })
-            .ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "Content-Disposition header missing or invalid",
-                )
-            })?
-            .to_string();
-
-        let full_path = PathBuf::from(output_path).join(&filename);
-
-        if tokio::fs::try_exists(&full_path).await? {
-            return Err(DBAlreadyExists.into());
-        }
-
-        // Stream the body of the response
-        let mut file = File::create(full_path).await?;
-        let mut stream = response.bytes_stream();
-
-        while let Some(item) = stream.next().await {
-            let chunk = item?;
-            file.write_all(&chunk).await?;
-        }
-
-        file.flush().await?;
-
-        Ok(filename)
-    }
-
-    async fn extract_db(path: &str, filename: &str) -> Result<String, Box<dyn Error>> {
-        let full_path = PathBuf::from(path).join(filename);
-
-        let output = Command::new("tar")
-            .arg("xvfz")
-            .arg(&full_path)
-            .arg("*.mmdb")
-            .output()
-            .await?;
-
-        if !output.status.success() {
-            return Err("failed to extract archive".into());
-        }
-
-        tokio::fs::remove_file(full_path).await?;
-
-        let extracted_filename =
-            String::from_utf8(output.stderr)?.replace('\n', "")[2..].to_string();
-
-        Ok(extracted_filename)
     }
 }
