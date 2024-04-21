@@ -1,5 +1,5 @@
 use crate::download_utils::*;
-use maxminddb::Reader;
+use maxminddb::{MaxMindDBError, Reader};
 use std::{env, error::Error, path::PathBuf};
 use tokio::sync::RwLock;
 
@@ -15,7 +15,7 @@ pub struct MaxmindDB {
 
 impl MaxmindDB {
     pub async fn init(variant: String, base_path: String) -> Result<Self, Box<dyn Error>> {
-        let mut db_path = match Self::get_latest_variant(&variant, &base_path).await? {
+        let db_path = match Self::get_latest_variant(&variant, &base_path).await? {
             Some(db) => db,
             None => {
                 println!("No database found! Fetching latest from upstream...");
@@ -23,17 +23,21 @@ impl MaxmindDB {
             }
         };
 
-        db_path.push(format!("{}.mmdb", variant));
-
-        println!("Initializing database from {}", db_path.to_str().unwrap());
-
-        let reader = Reader::open_readfile(db_path)?;
+        let reader = Self::load_db(db_path, &variant)?;
 
         Ok(Self {
             reader: RwLock::new(reader),
             variant,
             base_path,
         })
+    }
+
+    fn load_db(mut path: PathBuf, variant: &str) -> Result<Reader<Vec<u8>>, MaxMindDBError> {
+        path.push(format!("{}.mmdb", variant));
+
+        println!("Loading database from {}", path.to_str().unwrap());
+
+        Reader::open_readfile(path)
     }
 
     pub async fn update_db(&self) -> Result<(), Box<dyn Error>> {
@@ -45,16 +49,9 @@ impl MaxmindDB {
             },
         };
 
-        println!(
-            "Updating Maxmind DB to {}",
-            latest_db_path.to_str().unwrap()
-        );
-
-        {
-            let new_reader = Reader::open_readfile(latest_db_path)?;
-            let mut writer = self.reader.write().await;
-            *writer = new_reader;
-        }
+        let new_reader = Self::load_db(latest_db_path, &self.variant)?;
+        let mut writer = self.reader.write().await;
+        *writer = new_reader;
 
         println!("Database updated successfully");
 
