@@ -5,6 +5,7 @@ use tokio::sync::RwLock;
 
 const DEFAULT_DB_URL: &str =
     "https://download.maxmind.com/geoip/databases/{VARIANT}/download?suffix=tar.gz";
+const MAXMIND_EXT: &str = "mmdb";
 
 #[derive(Debug)]
 pub struct MaxmindDB {
@@ -33,7 +34,8 @@ impl MaxmindDB {
     }
 
     fn load_db(mut path: PathBuf, variant: &str) -> Result<Reader<Vec<u8>>, MaxMindDBError> {
-        path.push(format!("{}.mmdb", variant));
+        path.push(variant);
+        path.set_extension(MAXMIND_EXT);
 
         println!("Loading database from {}", path.to_str().unwrap());
 
