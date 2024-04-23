@@ -42,16 +42,16 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<String>) -> impl Res
         Err(resp) => return resp,
     };
 
-    let reader = data.reader.read().await;
+    let db = data.db.read().await;
 
     let lookup_results: HashMap<_, _> = ip_addresses
         .iter()
-        .map(|&ip| (ip, reader.lookup::<maxminddb::geoip2::City>(ip)))
+        .map(|&ip| (ip, db.reader.lookup::<maxminddb::geoip2::City>(ip)))
         .map(|(ip, city)| (ip, GeoLocation::from_maxmind(city.ok())))
         .collect();
 
     HttpResponse::Ok().json(LookupResponse {
         results: lookup_results,
-        database_version: reader.metadata.build_epoch,
+        database_build_epoch: db.reader.metadata.build_epoch,
     })
 }

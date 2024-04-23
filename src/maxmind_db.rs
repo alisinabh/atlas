@@ -1,17 +1,27 @@
 use crate::download_utils::*;
 use maxminddb::{MaxMindDBError, Reader};
-use std::{env, error::Error, path::PathBuf};
+use std::{
+    env,
+    error::Error,
+    path::{Path, PathBuf},
+};
 use tokio::sync::RwLock;
 
+const MAXMIND_EXT: &str = "mmdb";
 const DEFAULT_DB_URL: &str =
     "https://download.maxmind.com/geoip/databases/{VARIANT}/download?suffix=tar.gz";
-const MAXMIND_EXT: &str = "mmdb";
 
 #[derive(Debug)]
 pub struct MaxmindDB {
-    pub reader: RwLock<Reader<Vec<u8>>>,
+    pub db: RwLock<MaxmindDBInner>,
     pub variant: String,
     base_path: String,
+}
+
+#[derive(Debug)]
+pub struct MaxmindDBInner {
+    pub reader: Reader<Vec<u8>>,
+    pub path: String,
 }
 
 impl MaxmindDB {
@@ -24,25 +34,21 @@ impl MaxmindDB {
             }
         };
 
-        let reader = Self::load_db(db_path, &variant)?;
+        let inner_db = MaxmindDBInner::load(&db_path, &variant)?;
 
         Ok(Self {
-            reader: RwLock::new(reader),
+            db: RwLock::new(inner_db),
             variant,
             base_path,
         })
     }
 
-    fn load_db(mut path: PathBuf, variant: &str) -> Result<Reader<Vec<u8>>, MaxMindDBError> {
-        path.push(variant);
-        path.set_extension(MAXMIND_EXT);
+    pub async fn update_db(&self, db_min_age_secs: u64) -> Result<(), Box<dyn Error>> {
+        if self.db.build_epoch().await + db_min_age_secs > current_time_unix() {
+            println!("Database is too new to update");
+            return Ok(());
+        }
 
-        println!("Loading database from {}", path.to_str().unwrap());
-
-        Reader::open_readfile(path)
-    }
-
-    pub async fn update_db(&self) -> Result<(), Box<dyn Error>> {
         let latest_db_path = match Self::fetch_latest_db(&self.variant, &self.base_path).await {
             Ok(path) => path,
             Err(error) => match error.downcast_ref::<AlreadyDownloaded>() {
@@ -51,9 +57,8 @@ impl MaxmindDB {
             },
         };
 
-        let new_reader = Self::load_db(latest_db_path, &self.variant)?;
-        let mut writer = self.reader.write().await;
-        *writer = new_reader;
+        let new_db = MaxmindDBInner::load(&latest_db_path, &self.variant)?;
+        self.db.update_inner_db(new_db).await;
 
         println!("Database updated successfully");
 
@@ -107,4 +112,44 @@ impl MaxmindDB {
 
         Ok(db_versions.iter().max().cloned())
     }
+}
+
+impl MaxmindDBInner {
+    fn load<P: AsRef<Path>, S: AsRef<str>>(path: P, variant: S) -> Result<Self, MaxMindDBError> {
+        let mut path = path.as_ref().to_path_buf();
+
+        path.push(variant.as_ref());
+        path.set_extension(MAXMIND_EXT);
+
+        let path = path.to_str().unwrap().to_string();
+
+        println!("Loading database from {}", path);
+        let reader = Reader::open_readfile(&path)?;
+
+        Ok(Self { reader, path })
+    }
+}
+
+trait MaxmindDBRwLockTrait {
+    async fn build_epoch(&self) -> u64;
+    async fn update_inner_db(&self, new_db: MaxmindDBInner);
+}
+
+impl MaxmindDBRwLockTrait for RwLock<MaxmindDBInner> {
+    async fn build_epoch(&self) -> u64 {
+        let db = self.read().await;
+        db.reader.metadata.build_epoch
+    }
+
+    async fn update_inner_db(&self, new_db: MaxmindDBInner) {
+        let mut writer = self.write().await;
+        *writer = new_db;
+    }
+}
+
+fn current_time_unix() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
 }

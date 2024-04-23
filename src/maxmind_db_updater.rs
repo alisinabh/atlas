@@ -11,7 +11,7 @@ pub fn start_db_update_daemon(data: web::Data<MaxmindDB>, interval: u64) {
         loop {
             println!("Checking for database updates...");
 
-            let duration = match data.update_db().await {
+            let duration = match data.update_db(interval).await {
                 Ok(_) => success_update_sleep,
                 Err(error) => {
                     println!("Failed to update database {:?}", error);
