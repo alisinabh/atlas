@@ -1,10 +1,8 @@
 use super::bad_request;
 use crate::maxmind_db::MaxmindDB;
 use crate::network_utils::SpecialIPCheck;
-use crate::schemas::{GeoLocation, LookupResponse};
 
 use actix_web::{get, web, HttpResponse, Responder};
-use std::collections::HashMap;
 use std::net::IpAddr;
 
 #[get("/lookup/{ip_addresses}")]
@@ -42,16 +40,7 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<String>) -> impl Res
         Err(resp) => return resp,
     };
 
-    let db = data.db.read().await;
+    let lookup_results = data.lookup(ip_addresses).await;
 
-    let lookup_results: HashMap<_, _> = ip_addresses
-        .iter()
-        .map(|&ip| (ip, db.reader.lookup::<maxminddb::geoip2::City>(ip)))
-        .map(|(ip, city)| (ip, GeoLocation::from_maxmind(city.ok())))
-        .collect();
-
-    HttpResponse::Ok().json(LookupResponse {
-        results: lookup_results,
-        database_build_epoch: db.reader.metadata.build_epoch,
-    })
+    HttpResponse::Ok().json(lookup_results)
 }

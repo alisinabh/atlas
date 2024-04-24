@@ -1,12 +1,14 @@
 use serde::Serialize;
 
 #[derive(Serialize)]
-pub struct Postal<'a> {
-    code: Option<&'a str>,
+pub struct Postal {
+    code: Option<String>,
 }
 
-impl<'a> Postal<'a> {
-    pub fn from_maxmind(mm_postal: Option<maxminddb::geoip2::city::Postal<'a>>) -> Option<Self> {
-        mm_postal.map(|postal| Self { code: postal.code })
+impl Postal {
+    pub fn from_maxmind(mm_postal: Option<maxminddb::geoip2::city::Postal>) -> Option<Self> {
+        mm_postal.map(|postal| Self {
+            code: postal.code.map(|s| s.to_string()),
+        })
     }
 }

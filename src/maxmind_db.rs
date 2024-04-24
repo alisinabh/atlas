@@ -1,8 +1,13 @@
-use crate::download_utils::*;
+use crate::{
+    download_utils::*,
+    schemas::{GeoLocation, LookupResponse},
+};
 use maxminddb::{MaxMindDBError, Reader};
 use std::{
+    collections::HashMap,
     env,
     error::Error,
+    net::IpAddr,
     path::{Path, PathBuf},
 };
 use tokio::sync::RwLock;
@@ -41,6 +46,23 @@ impl MaxmindDB {
             variant,
             base_path,
         })
+    }
+
+    pub async fn lookup(&self, ip_addresses: Vec<IpAddr>) -> LookupResponse {
+        let db_read = self.db.read().await;
+
+        let results: HashMap<_, _> = ip_addresses
+            .iter()
+            .map(|&ip| (ip, db_read.reader.lookup::<maxminddb::geoip2::City>(ip)))
+            .map(|(ip, city)| (ip, GeoLocation::from_maxmind(city.ok())))
+            .collect();
+
+        let database_build_epoch = db_read.reader.metadata.build_epoch;
+
+        LookupResponse {
+            database_build_epoch,
+            results,
+        }
     }
 
     pub async fn update_db(&self, db_min_age_secs: u64) -> Result<(), Box<dyn Error>> {

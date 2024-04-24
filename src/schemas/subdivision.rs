@@ -2,16 +2,20 @@ use serde::Serialize;
 use std::collections::BTreeMap;
 
 #[derive(Serialize)]
-pub struct Subdivision<'a> {
-    iso_code: Option<&'a str>,
-    names: Option<BTreeMap<&'a str, &'a str>>,
+pub struct Subdivision {
+    iso_code: Option<String>,
+    names: Option<BTreeMap<String, String>>,
 }
 
-impl<'a> Subdivision<'a> {
-    pub fn from_maxmind(mm_sub: Option<maxminddb::geoip2::city::Subdivision<'a>>) -> Option<Self> {
+impl Subdivision {
+    pub fn from_maxmind(mm_sub: Option<maxminddb::geoip2::city::Subdivision>) -> Option<Self> {
         mm_sub.map(|sub| Self {
-            iso_code: sub.iso_code,
-            names: sub.names,
+            iso_code: sub.iso_code.map(|s| s.to_string()),
+            names: sub.names.map(|m| {
+                m.iter()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect()
+            }),
         })
     }
 }

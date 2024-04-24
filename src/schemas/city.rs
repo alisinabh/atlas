@@ -2,12 +2,18 @@ use serde::Serialize;
 use std::collections::BTreeMap;
 
 #[derive(Serialize)]
-pub struct City<'a> {
-    names: Option<BTreeMap<&'a str, &'a str>>,
+pub struct City {
+    names: Option<BTreeMap<String, String>>,
 }
 
-impl<'a> City<'a> {
-    pub fn from_maxmind(mm_city: Option<maxminddb::geoip2::city::City<'a>>) -> Option<Self> {
-        mm_city.map(|city| Self { names: city.names })
+impl City {
+    pub fn from_maxmind(mm_city: Option<maxminddb::geoip2::city::City>) -> Option<Self> {
+        mm_city.map(|city| Self {
+            names: city.names.map(|m| {
+                m.iter()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect()
+            }),
+        })
     }
 }

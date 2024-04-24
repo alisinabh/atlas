@@ -2,15 +2,15 @@ use super::{City, Country, Postal, Subdivision};
 use serde::Serialize;
 
 #[derive(Serialize)]
-pub struct GeoLocation<'a> {
-    city: Option<City<'a>>,
-    country: Option<Country<'a>>,
-    postal: Option<Postal<'a>>,
-    subdivisions: Option<Vec<Subdivision<'a>>>,
+pub struct GeoLocation {
+    city: Option<City>,
+    country: Option<Country>,
+    postal: Option<Postal>,
+    subdivisions: Option<Vec<Subdivision>>,
 }
 
-impl<'a> GeoLocation<'a> {
-    pub fn from_maxmind(mm_city: Option<maxminddb::geoip2::City<'a>>) -> Option<Self> {
+impl GeoLocation {
+    pub fn from_maxmind(mm_city: Option<maxminddb::geoip2::City>) -> Option<Self> {
         mm_city.map(|city| Self {
             city: City::from_maxmind(city.city),
             country: Country::from_maxmind(city.country),

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::net::IpAddr;
 
 #[derive(Serialize)]
-pub struct LookupResponse<'a> {
-    pub results: HashMap<IpAddr, Option<GeoLocation<'a>>>,
+pub struct LookupResponse {
+    pub results: HashMap<IpAddr, Option<GeoLocation>>,
     pub database_build_epoch: u64,
 }
