@@ -1,8 +1,9 @@
 use crate::{
     download_utils::*,
-    schemas::{GeoLocation, LookupResult},
+    schemas::{LookupResult, Lookupable},
 };
 use maxminddb::{MaxMindDBError, Reader};
+use serde::Serialize;
 use std::{
     collections::HashMap,
     env,
@@ -48,13 +49,15 @@ impl MaxmindDB {
         })
     }
 
-    pub async fn lookup(&self, ip_addresses: Vec<IpAddr>) -> LookupResult {
+    pub async fn lookup<T: Lookupable + Serialize>(
+        &self,
+        ip_addresses: Vec<IpAddr>,
+    ) -> LookupResult<T> {
         let db_read = self.db.read().await;
 
         let results: HashMap<_, _> = ip_addresses
             .iter()
-            .map(|&ip| (ip, db_read.reader.lookup::<maxminddb::geoip2::City>(ip)))
-            .map(|(ip, city)| (ip, GeoLocation::from_maxmind(city.ok())))
+            .map(|&ip| (ip, T::lookup(&db_read.reader, ip)))
             .collect();
 
         let database_build_epoch = db_read.reader.metadata.build_epoch;
