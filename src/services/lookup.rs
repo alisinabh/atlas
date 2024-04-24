@@ -1,14 +1,16 @@
 use super::bad_request;
 use crate::maxmind_db::MaxmindDB;
 use crate::network_utils::SpecialIPCheck;
+use crate::schemas::{CityResult, ConnectionTypeResult};
 
 use actix_web::{get, web, HttpResponse, Responder};
 use std::net::IpAddr;
 
-#[get("/lookup/{ip_addresses}")]
-async fn handle(data: web::Data<MaxmindDB>, path: web::Path<String>) -> impl Responder {
-    let ip_addresses: Vec<IpAddr> = match path
-        .into_inner()
+#[get("/lookup/{lookup_type}/{ip_addresses}")]
+async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -> impl Responder {
+    let (lookup_type, ip_addresses) = path.into_inner();
+
+    let ip_addresses: Vec<IpAddr> = match ip_addresses
         .split(',')
         .map(|ip_address| {
             ip_address
@@ -40,7 +42,14 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<String>) -> impl Res
         Err(resp) => return resp,
     };
 
-    let lookup_result = data.lookup(ip_addresses).await;
+    let lookup_result = match lookup_type.as_str() {
+        "city" => serde_json::to_string(&data.lookup::<CityResult>(ip_addresses).await),
+        "connection_type" => {
+            serde_json::to_string(&data.lookup::<ConnectionTypeResult>(ip_addresses).await)
+        }
+        _ => return bad_request("invalid lookup_type".to_string()),
+    }
+    .unwrap();
 
     HttpResponse::Ok().json(lookup_result)
 }
