@@ -1,6 +1,6 @@
 use crate::{
     download_utils::*,
-    schemas::{GeoLocation, LookupResponse},
+    schemas::{GeoLocation, LookupResult},
 };
 use maxminddb::{MaxMindDBError, Reader};
 use std::{
@@ -48,7 +48,7 @@ impl MaxmindDB {
         })
     }
 
-    pub async fn lookup(&self, ip_addresses: Vec<IpAddr>) -> LookupResponse {
+    pub async fn lookup(&self, ip_addresses: Vec<IpAddr>) -> LookupResult {
         let db_read = self.db.read().await;
 
         let results: HashMap<_, _> = ip_addresses
@@ -59,7 +59,7 @@ impl MaxmindDB {
 
         let database_build_epoch = db_read.reader.metadata.build_epoch;
 
-        LookupResponse {
+        LookupResult {
             database_build_epoch,
             results,
         }

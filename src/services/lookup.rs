@@ -40,7 +40,7 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<String>) -> impl Res
         Err(resp) => return resp,
     };
 
-    let lookup_results = data.lookup(ip_addresses).await;
+    let lookup_result = data.lookup(ip_addresses).await;
 
-    HttpResponse::Ok().json(lookup_results)
+    HttpResponse::Ok().json(lookup_result)
 }
