@@ -141,6 +141,10 @@ impl<'de> MaxmindDBInner {
             .map(|&ip| (ip, self.reader.lookup::<T>(ip).ok()))
             .collect()
     }
+
+    pub fn build_epoch(&self) -> u64 {
+        self.reader.metadata.build_epoch
+    }
 }
 
 trait MaxmindDBRwLockTrait {
@@ -151,7 +155,7 @@ trait MaxmindDBRwLockTrait {
 impl MaxmindDBRwLockTrait for RwLock<MaxmindDBInner> {
     async fn build_epoch(&self) -> u64 {
         let db = self.read().await;
-        db.reader.metadata.build_epoch
+        db.build_epoch()
     }
 
     async fn update_inner_db(&self, new_db: MaxmindDBInner) {

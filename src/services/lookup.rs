@@ -100,6 +100,6 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -
 
     HttpResponse::Ok().json(LookupResponseModel {
         results,
-        database_build_epoch: db_inner.reader.metadata.build_epoch,
+        database_build_epoch: db_inner.build_epoch(),
     })
 }
