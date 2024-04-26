@@ -52,20 +52,17 @@ impl MaxmindDB {
     pub async fn lookup<T: Lookupable + Serialize>(
         &self,
         ip_addresses: Vec<IpAddr>,
-    ) -> LookupResult<T> {
+    ) -> (HashMap<IpAddr, Option<LookupResult>>, u64) {
         let db_read = self.db.read().await;
 
-        let results: HashMap<_, _> = ip_addresses
+        let results = ip_addresses
             .iter()
-            .map(|&ip| (ip, T::lookup(&db_read.reader, ip)))
+            .map(|&ip| (ip, T::lookup(&db_read.reader, ip).ok()))
             .collect();
 
         let database_build_epoch = db_read.reader.metadata.build_epoch;
 
-        LookupResult {
-            database_build_epoch,
-            results,
-        }
+        (results, database_build_epoch)
     }
 
     pub async fn update_db(&self, db_min_age_secs: u64) -> Result<(), Box<dyn Error>> {
