@@ -1,6 +1,6 @@
 mod download_utils;
 mod maxmind_db;
-mod maxmind_db_updater;
+mod maxmind_db_refresher;
 mod network_utils;
 mod services;
 
@@ -45,7 +45,7 @@ async fn server(maxmind_db_arc: web::Data<MaxmindDB>) -> Result<()> {
         .expect("Invalid PORT value");
 
     // Start Database Updater Daemon
-    maxmind_db_updater::start_db_update_daemon(maxmind_db_arc.clone(), update_interval);
+    maxmind_db_refresher::start_db_update_daemon(maxmind_db_arc.clone(), update_interval);
 
     // Start HTTP Server
     HttpServer::new(move || {
