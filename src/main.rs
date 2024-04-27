@@ -1,6 +1,7 @@
 mod download_utils;
 mod maxmind_db;
 mod maxmind_db_refresher;
+mod models;
 mod network_utils;
 mod services;
 
