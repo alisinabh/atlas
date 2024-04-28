@@ -1,4 +1,4 @@
-use crate::download_utils::*;
+use crate::{db_refresher::UpdatableDB, download_utils::*};
 use maxminddb::{MaxMindDBError, Reader};
 use serde::Deserialize;
 use std::{
@@ -44,28 +44,6 @@ impl<'de> MaxmindDB {
             variant,
             base_path,
         })
-    }
-
-    pub async fn update_db(&self, db_min_age_secs: u64) -> Result<(), Box<dyn Error>> {
-        if self.db.build_epoch().await + db_min_age_secs > current_time_unix() {
-            println!("Database is too new to update");
-            return Ok(());
-        }
-
-        let latest_db_path = match Self::fetch_latest_db(&self.variant, &self.base_path).await {
-            Ok(path) => path,
-            Err(error) => match error.downcast_ref::<AlreadyDownloaded>() {
-                Some(AlreadyDownloaded) => return Ok(()),
-                None => return Err(error),
-            },
-        };
-
-        let new_db = MaxmindDBInner::load(&latest_db_path, &self.variant)?;
-        self.db.update_inner_db(new_db).await;
-
-        println!("Database updated successfully");
-
-        Ok(())
     }
 
     async fn fetch_latest_db(variant: &str, output_path: &str) -> Result<PathBuf, Box<dyn Error>> {
@@ -114,6 +92,30 @@ impl<'de> MaxmindDB {
         }
 
         Ok(db_versions.iter().max().cloned())
+    }
+}
+
+impl UpdatableDB for MaxmindDB {
+    async fn update_db(&self, db_min_age_secs: u64) -> Result<(), Box<dyn Error>> {
+        if self.db.build_epoch().await + db_min_age_secs > current_time_unix() {
+            println!("Database is too new to update");
+            return Ok(());
+        }
+
+        let latest_db_path = match Self::fetch_latest_db(&self.variant, &self.base_path).await {
+            Ok(path) => path,
+            Err(error) => match error.downcast_ref::<AlreadyDownloaded>() {
+                Some(AlreadyDownloaded) => return Ok(()),
+                None => return Err(error),
+            },
+        };
+
+        let new_db = MaxmindDBInner::load(&latest_db_path, &self.variant)?;
+        self.db.update_inner_db(new_db).await;
+
+        println!("Database updated successfully");
+
+        Ok(())
     }
 }
 
