@@ -1,4 +1,6 @@
-FROM rust:1-bookworm AS builder
+ARG DEBIAN_RELEASE=bookworm
+
+FROM rust:1-$DEBIAN_RELEASE AS builder
 
 WORKDIR /app
 
@@ -7,7 +9,7 @@ COPY Cargo.* ./
 
 RUN cargo build --release
 
-FROM debian:bookworm-slim
+FROM debian:$DEBIAN_RELEASE-slim
 
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
