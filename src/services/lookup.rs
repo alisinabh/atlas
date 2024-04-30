@@ -6,6 +6,17 @@ use crate::network_utils::SpecialIPCheck;
 use actix_web::{get, web, HttpResponse, Responder};
 use std::net::IpAddr;
 
+#[utoipa::path(
+    get,
+    path = "/geoip/lookup/{lookup_type}/{ip_addresses}",
+    responses(
+        (status = 200, description = "Ok", body = LookupResponseModel)
+    ),
+    params(
+        ("lookup_type" = String, Path, description = "Type of the lookup", example = "city"),
+        ("ip_addresses" = String, Path, description = "List of ip addresses separated by comma", example = "4.2.2.4")
+    )
+)]
 #[get("/geoip/lookup/{lookup_type}/{ip_addresses}")]
 async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -> impl Responder {
     let (lookup_type, ip_addresses) = path.into_inner();

@@ -17,6 +17,11 @@ async fn main() -> Result<()> {
         .parse()
         .expect("Invalid PORT value");
 
+    let swagger_ui_enabled: bool = env::var("SWAGGER_UI_ENABLED")
+        .unwrap_or("true".to_string())
+        .parse()
+        .expect("Invalid SWAGGER_UI_ENABLED value. Expected `false` or `true`");
+
     let maxmind_db_arc = atlas_rs::init_db(&db_path, &db_variant).await;
 
     let subcommand = args().skip(1).next();
@@ -26,7 +31,7 @@ async fn main() -> Result<()> {
             // Start Database Updater Daemon
             atlas_rs::start_db_refresher(maxmind_db_arc.clone(), update_interval);
             // Start Server
-            atlas_rs::start_server(maxmind_db_arc, &host, port).await
+            atlas_rs::start_server(maxmind_db_arc, &host, port, swagger_ui_enabled).await
         }
         Some("init") => Ok(()),
         Some(command) => Err(Error::new(
