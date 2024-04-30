@@ -9,7 +9,7 @@ edition = "2021"
 name = "atlas_rs"
 
 [[bin]]
-name = "altas"
+name = "atlas"
 path = "src/main.rs"
 
 [dependencies]
