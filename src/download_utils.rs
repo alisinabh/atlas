@@ -1,5 +1,6 @@
 use core::fmt;
 use futures_util::StreamExt;
+use std::env;
 use std::error::Error;
 use std::path::PathBuf;
 use tokio::fs::File;
@@ -82,14 +83,15 @@ pub async fn download_with_basic_auth(
 pub async fn extract_db(path: &str, filename: &str) -> Result<String, Box<dyn Error>> {
     let full_path = PathBuf::from(path).join(filename);
 
-    let output = Command::new("tar")
-        .arg("xvfz")
-        .arg(&full_path)
-        .arg("-C")
-        .arg(path)
-        .arg("*.mmdb")
-        .output()
-        .await?;
+    let mut command = Command::new("tar");
+
+    command.arg("xvfz").arg(&full_path).arg("-C").arg(path);
+
+    if env::consts::OS != "macos" {
+        command.arg("--wildcards");
+    }
+
+    let output = command.arg("*.mmdb").output().await?;
 
     if !output.status.success() {
         println!("{:?}", output);
@@ -98,7 +100,12 @@ pub async fn extract_db(path: &str, filename: &str) -> Result<String, Box<dyn Er
 
     tokio::fs::remove_file(full_path).await?;
 
-    let extracted_filename = String::from_utf8(output.stderr)?.replace('\n', "")[2..].to_string();
+    let result = match env::consts::OS {
+        "macos" => output.stderr,
+        _ => output.stdout,
+    };
+
+    let extracted_filename = String::from_utf8(result)?.replace('\n', "")[2..].to_string();
 
     Ok(extracted_filename)
 }
