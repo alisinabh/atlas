@@ -1,5 +1,7 @@
 # Atlas
 
+[![Atlas CI](https://github.com/alisinabh/atlas-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/alisinabh/atlas-rs)
+
 Atlas is a geoip HTTP service built in Rust, designed to simplify IP GeoLocation by automatically
 managing MaxMind databases. It ensures that users have up-to-date IP data without the hassle of
 manual downloads and updates. This tool is perfect for services who need reliable and fast
