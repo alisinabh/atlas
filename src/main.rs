@@ -4,7 +4,7 @@ use std::io::{Error, ErrorKind, Result};
 #[actix_web::main]
 async fn main() -> Result<()> {
     let db_variant = env::var("MAXMIND_DB_VARIANT").unwrap_or("GeoLite2-City".to_string());
-    let db_path = env::var("DB_PATH").unwrap_or("db/".to_string());
+    let db_path = env::var("DB_PATH").unwrap_or("/opt/atlas/db".to_string());
 
     let update_interval: u64 = env::var("DB_UPDATE_INTERVAL_SECONDS")
         .unwrap_or("86400".to_string())
@@ -18,7 +18,7 @@ async fn main() -> Result<()> {
         .expect("Invalid PORT value");
 
     let swagger_ui_enabled: bool = env::var("SWAGGER_UI_ENABLED")
-        .unwrap_or("true".to_string())
+        .unwrap_or("false".to_string())
         .parse()
         .expect("Invalid SWAGGER_UI_ENABLED value. Expected `false` or `true`");
 
