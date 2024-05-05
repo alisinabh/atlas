@@ -237,6 +237,7 @@ dependencies = [
 name = "atlas-rs"
 version = "0.1.0"
 dependencies = [
+ "actix-http",
  "actix-web",
  "futures-util",
  "maxminddb",
