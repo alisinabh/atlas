@@ -1,3 +1,4 @@
+pub mod api_docs;
 pub mod db_refresher;
 pub mod download_utils;
 pub mod maxmind_db;
@@ -8,10 +9,7 @@ pub mod services;
 use actix_web::{web, App, HttpServer};
 use maxmind_db::MaxmindDB;
 use std::io::Result;
-use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-
-use crate::models::{HealthCheckModel, LookupResponseModel, LookupResult};
 
 pub async fn init_db(db_path: &str, db_variant: &str) -> web::Data<MaxmindDB> {
     let maxmind_db = MaxmindDB::init(db_variant, db_path)
@@ -51,16 +49,5 @@ pub async fn start_server(
 }
 
 fn swagger_ui_service() -> SwaggerUi {
-    SwaggerUi::new("swagger-ui/{_:.*}").url("/api-docs/openapi.json", api_doc())
-}
-
-fn api_doc() -> utoipa::openapi::OpenApi {
-    #[derive(OpenApi)]
-    #[openapi(
-        paths(services::healthcheck::handle, services::lookup::handle),
-        components(schemas(LookupResponseModel, LookupResult, HealthCheckModel))
-    )]
-    struct ApiDoc;
-
-    ApiDoc::openapi()
+    SwaggerUi::new("swagger-ui/{_:.*}").url("/api-docs/openapi.json", api_docs::api_doc())
 }

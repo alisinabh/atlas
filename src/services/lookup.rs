@@ -6,9 +6,40 @@ use crate::network_utils::SpecialIPCheck;
 use actix_web::{get, web, HttpResponse, Responder};
 use std::net::IpAddr;
 
+/// Lookup information on many IP addresses at once
+///
+/// ## Path Parameters
+///
+/// ### Lookup Type (`lookup_type`)
+///
+/// Type of the lookup. Must be one of the below values. If your Maxmind DB does not support it you
+/// will get `null` values.
+///
+/// * `anonymous_ip`
+///
+/// * `asn`
+///
+/// * `city`
+///
+/// * `connection_type`
+///
+/// * `country`
+///
+/// * `density_income`
+///
+/// * `enterprise`
+///
+/// * `isp`
+///
+/// ### IP or IP Addresses (`ip_addresses`)
+///
+/// Either a single IP Address (V4 or V6) or a list of comma (`,`) separated IP Addresses.
+///
+/// Example: `1.1.1.1,2.2.2.2`
 #[utoipa::path(
     get,
     path = "/geoip/lookup/{lookup_type}/{ip_addresses}",
+    tag = "GeoIP",
     responses(
         (status = 200, description = "Ok", body = LookupResponseModel)
     ),
