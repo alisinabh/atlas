@@ -24,9 +24,12 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -
     let ip_addresses: Vec<IpAddr> = match ip_addresses
         .split(',')
         .map(|ip_address| {
-            ip_address
-                .parse()
-                .map_err(|_| bad_request(format!("Invalid IP Address {:?}", ip_address)))
+            ip_address.parse().map_err(|_| {
+                bad_request(
+                    format!("Invalid IP Address {:?}", ip_address),
+                    "INVALID_IP".to_string(),
+                )
+            })
         })
         .collect()
     {
@@ -35,14 +38,23 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -
     };
 
     if ip_addresses.len() > 50 {
-        return bad_request("Too many IP Addresses".to_string());
+        return bad_request(
+            "Too many IP Addresses".to_string(),
+            "TOO_MANY_IPS".to_string(),
+        );
     }
 
     let ip_addresses = match ip_addresses
         .iter()
         .map(|&ip| {
             if ip.is_special_ip() {
-                Err(bad_request(format!("IP Address is not allowed: {}", ip)))
+                Err(bad_request(
+                    format!(
+                        "IP Address is part of a special list and not allowed: {}",
+                        ip
+                    ),
+                    "SPECIAL_IP".to_string(),
+                ))
             } else {
                 Ok(ip)
             }
@@ -64,7 +76,12 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -
         "density_income" => LookupResult::DensityIncome(db_inner.lookup(ip_addresses).await),
         "enterprise" => LookupResult::Enterprise(db_inner.lookup(ip_addresses).await),
         "isp" => LookupResult::Isp(db_inner.lookup(ip_addresses).await),
-        _ => return bad_request("invalid lookup_type".to_string()),
+        _ => {
+            return bad_request(
+                "invalid lookup_type".to_string(),
+                "INVALID_LOOKUP_TYPE".to_string(),
+            )
+        }
     };
 
     HttpResponse::Ok().json(LookupResponseModel {

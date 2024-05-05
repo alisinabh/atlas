@@ -5,10 +5,18 @@ pub mod healthcheck;
 pub mod lookup;
 
 #[derive(Serialize)]
-struct JsonError {
+struct Error {
     message: String,
+    code: String,
 }
 
-pub fn bad_request(message: String) -> HttpResponse {
-    HttpResponse::BadRequest().json(JsonError { message })
+#[derive(Serialize)]
+struct ErrorResponse {
+    error: Error,
+}
+
+pub fn bad_request(message: String, code: String) -> HttpResponse {
+    HttpResponse::BadRequest().json(ErrorResponse {
+        error: Error { message, code },
+    })
 }

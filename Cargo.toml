@@ -14,6 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 actix-web = "4"
+actix-http = "3"
 futures-util = "0.3.30"
 maxminddb = "0.24.0"
 reqwest = { version = "0.11", features = ["stream"] }
