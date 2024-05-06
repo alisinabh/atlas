@@ -48,21 +48,9 @@ impl<'__s> utoipa::ToSchema<'__s> for LookupResult<'__s> {
         (
             "LookupResult",
             utoipa::openapi::ObjectBuilder::new()
-                .property(
-                    "{ip_address}",
-                    utoipa::openapi::Schema::OneOf(
-                        utoipa::openapi::schema::OneOfBuilder::new()
-                            .item(LookupResult::city_schema())
-                            .item(LookupResult::enterprise_schema())
-                            .item(LookupResult::anonymous_ip_schema())
-                            .item(LookupResult::asn_schema())
-                            .item(LookupResult::connection_type_schema())
-                            .item(LookupResult::country_schema())
-                            .item(LookupResult::density_income_schema())
-                            .item(LookupResult::isp_schema())
-                            .into(),
-                    ),
-                )
+                .additional_properties(Some(AdditionalProperties::RefOr(
+                    utoipa::openapi::RefOr::T(LookupResult::one_of_lookup_schema()),
+                )))
                 .into(),
         )
     }
@@ -73,17 +61,33 @@ impl<'a> LookupResult<'a> {
         ObjectBuilder::new()
             .schema_type(utoipa::openapi::SchemaType::Object)
             .title(Some("LocalizedString"))
-            .property(
-                "{language_code}",
-                ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::String),
-            )
-            .additional_properties(Some(AdditionalProperties::FreeForm(true)))
+            .additional_properties(Some(AdditionalProperties::RefOr(
+                utoipa::openapi::RefOr::T(utoipa::openapi::Schema::Object(
+                    ObjectBuilder::new()
+                        .schema_type(utoipa::openapi::SchemaType::String)
+                        .into(),
+                )),
+            )))
     }
 
     fn geoname_id() -> ObjectBuilder {
         ObjectBuilder::new()
             .schema_type(utoipa::openapi::SchemaType::Integer)
             .example(Some(serde_json::Value::Number(1234.into())))
+    }
+
+    fn one_of_lookup_schema() -> utoipa::openapi::Schema {
+        let builder = utoipa::openapi::schema::OneOfBuilder::new()
+            .item(LookupResult::city_schema())
+            .item(LookupResult::enterprise_schema())
+            .item(LookupResult::anonymous_ip_schema())
+            .item(LookupResult::asn_schema())
+            .item(LookupResult::connection_type_schema())
+            .item(LookupResult::country_schema())
+            .item(LookupResult::density_income_schema())
+            .item(LookupResult::isp_schema());
+
+        utoipa::openapi::Schema::OneOf(builder.into())
     }
 
     fn anonymous_ip_schema() -> ObjectBuilder {
