@@ -1,5 +1,10 @@
-use std::env::{self, args};
+use std::env;
 use std::io::{Error, ErrorKind, Result};
+
+use atlas_rs::api_docs;
+use tokio::io::AsyncWriteExt;
+
+const SPEC_FILENAME: &'static str = "openapi-spec.json";
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -22,18 +27,38 @@ async fn main() -> Result<()> {
         .parse()
         .expect("Invalid SWAGGER_UI_ENABLED value. Expected `false` or `true`");
 
-    let maxmind_db_arc = atlas_rs::init_db(&db_path, &db_variant).await;
-
-    let subcommand = args().skip(1).next();
+    let subcommand = env::args().skip(1).next();
 
     match subcommand.as_deref() {
         Some("server") | None => {
+            // Load or Initialize MaxMind database
+            let maxmind_db_arc = atlas_rs::init_db(&db_path, &db_variant).await;
             // Start Database Updater Daemon
             atlas_rs::start_db_refresher(maxmind_db_arc.clone(), update_interval);
             // Start Server
             atlas_rs::start_server(maxmind_db_arc, &host, port, swagger_ui_enabled).await
         }
-        Some("init") => Ok(()),
+        Some("init") => {
+            let _db = atlas_rs::init_db(&db_path, &db_variant).await;
+            println!("Initiation was successful");
+            Ok(())
+        }
+        Some("spec") => {
+            let api_doc = api_docs::api_doc();
+            let json_api_doc = api_doc.to_json().expect("Failed to generate API spec");
+
+            let mut file = tokio::fs::File::create(SPEC_FILENAME)
+                .await
+                .expect("Could not create spec file");
+
+            file.write_all(json_api_doc.as_bytes())
+                .await
+                .expect("Could not write to file");
+
+            println!("Generated {SPEC_FILENAME}");
+
+            Ok(())
+        }
         Some(command) => Err(Error::new(
             ErrorKind::InvalidInput,
             format!("Invalid command: {}", command),

@@ -4,3 +4,4 @@ db
 
 # Keep everything in tests-data
 !tests-data/**
+openapi-spec.json
