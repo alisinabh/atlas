@@ -50,6 +50,12 @@ You can find the release binaries at `target/release/atlas`. Then you can run at
 `./target/release/atlas` in your terminal. Make sure that the `DB_PATH` directory already exists
 otherwise atlas crashes on startup.
 
+## API Documentation
+
+Atlas generates OpenApi 3.0 specifications for its APIs. We host our main branch docs at https://atlas-rs.fly.dev/swagger-ui/.
+
+You can also enable the `/swagger-ui` endpoint locally or in your deployments by setting `SWAGGER_UI_ENABLED` to `true`.
+
 ## Configuration
 
 Atlas uses OS environment variables for configuration. Here are the list of environment variables
