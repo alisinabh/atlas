@@ -24,7 +24,8 @@ pub struct MaxmindDB {
 #[derive(Debug)]
 pub struct MaxmindDBInner {
     pub reader: Reader<Vec<u8>>,
-    pub path: String,
+    pub filename: String,
+    pub base_path: String,
 }
 
 impl<'de> MaxmindDB {
@@ -110,28 +111,47 @@ impl UpdatableDB for MaxmindDB {
             },
         };
 
+        let stale_db_path = self.db.db_base_path().await;
+
         let new_db = MaxmindDBInner::load(&latest_db_path, &self.variant)?;
         self.db.update_inner_db(new_db).await;
 
-        println!("Database updated successfully");
+        println!(
+            "Database updated successfully. {}",
+            latest_db_path.to_str().unwrap()
+        );
+
+        print!("Removing stale database at {stale_db_path}");
+
+        if let Err(reason) = tokio::fs::remove_dir_all(stale_db_path).await {
+            print!("Failed to remove stale database {reason:?}");
+        };
 
         Ok(())
     }
 }
 
 impl<'de> MaxmindDBInner {
-    fn load<P: AsRef<Path>, S: AsRef<str>>(path: P, variant: S) -> Result<Self, MaxMindDBError> {
-        let mut path = path.as_ref().to_path_buf();
+    fn load<P: AsRef<Path>, S: AsRef<str>>(
+        base_path: P,
+        variant: S,
+    ) -> Result<Self, MaxMindDBError> {
+        let mut path = base_path.as_ref().to_path_buf();
 
         path.push(variant.as_ref());
         path.set_extension(MAXMIND_EXT);
 
-        let path = path.to_str().unwrap().to_string();
+        let filename = path.file_name().unwrap().to_str().unwrap().to_string();
+        let full_path = path.to_str().unwrap().to_string();
 
-        println!("Loading database from {}", path);
-        let reader = Reader::open_readfile(&path)?;
+        println!("Loading database from {}", full_path);
+        let reader = Reader::open_readfile(&full_path)?;
 
-        Ok(Self { reader, path })
+        Ok(Self {
+            reader,
+            filename,
+            base_path: base_path.as_ref().to_str().unwrap().to_string(),
+        })
     }
 
     pub async fn lookup<T>(&'de self, ip_addresses: Vec<IpAddr>) -> HashMap<IpAddr, Option<T>>
@@ -151,6 +171,7 @@ impl<'de> MaxmindDBInner {
 
 trait MaxmindDBRwLockTrait {
     async fn build_epoch(&self) -> u64;
+    async fn db_base_path(&self) -> String;
     async fn update_inner_db(&self, new_db: MaxmindDBInner);
 }
 
@@ -163,6 +184,10 @@ impl MaxmindDBRwLockTrait for RwLock<MaxmindDBInner> {
     async fn update_inner_db(&self, new_db: MaxmindDBInner) {
         let mut writer = self.write().await;
         *writer = new_db;
+    }
+
+    async fn db_base_path(&self) -> String {
+        self.read().await.base_path.clone()
     }
 }
 
