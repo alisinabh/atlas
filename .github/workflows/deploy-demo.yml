@@ -1,4 +1,4 @@
-name: Fly Deploy
+name: Deploy Demo
 
 on:
   push:
