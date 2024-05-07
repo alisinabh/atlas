@@ -19,5 +19,10 @@ primary_region = 'yyz'
 [[vm]]
   size = 'shared-cpu-1x'
 
-[[env]]
+[env]
   SWAGGER_UI_ENABLED = "true"
+
+[mounts]
+  source = "atlas_db_data"
+  destination = "/opt/atlas/db/"
+  initial_size = "2gb"
