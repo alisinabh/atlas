@@ -32,22 +32,22 @@ pub async fn start_server(
     // Start HTTP Server
     HttpServer::new(move || {
         let reader_data = maxmind_db_arc.clone();
-        let mut app = App::new()
+        let app = App::new()
             .app_data(reader_data)
             .service(services::lookup::handle)
             .service(services::healthcheck::handle);
 
         if swagger_ui_enabled {
-            app = app.service(swagger_ui_service())
+            app.service(
+                SwaggerUi::new("/swagger-ui/{_:.*}")
+                    .url("/api-docs/openapi.json", api_docs::api_doc()),
+            )
+            .service(web::redirect("/swagger-ui", "/swagger-ui/"))
+        } else {
+            app
         }
-
-        app
     })
     .bind((host, port))?
     .run()
     .await
-}
-
-fn swagger_ui_service() -> SwaggerUi {
-    SwaggerUi::new("swagger-ui/{_:.*}").url("/api-docs/openapi.json", api_docs::api_doc())
 }
