@@ -32,7 +32,8 @@ docker run -it --rm \
   alisinabh/atlas
 ```
 
-Same image can be used for deploying Atlas to Kubernetes or other orchestration platforms.
+Same image can be used for deploying Atlas to Kubernetes or other orchestration platforms. By default, the databases will be saved at
+`/opt/atlas/db` directory. It is recommended to mount this path to a persistant storage medium to avoid downloading a new DB on every restart.
 
 For more configuration variables, visit [Configuration](#configuration) section.
 
@@ -54,10 +55,12 @@ otherwise atlas crashes on startup.
 Atlas uses OS environment variables for configuration. Here are the list of environment variables
 that atlas looks into.
 
-- `MAXMIND_ACCOUNT_ID`: Your Maxmind Account ID used to download the database. **Required**
-- `MAXMIND_LICENSE_KEY`: Your Maxmind license key used to download the database. **Required**
+- `MAXMIND_ACCOUNT_ID`: Your Maxmind Account ID used to download the database. **Required** (Get GeoLite2 databses for free at https://dev.maxmind.com/geoip/geolite2-free-geolocation-data)
+- `MAXMIND_LICENSE_KEY`: Your Maxmind license key used to download the database. **Required** (Generate a License Key from maxmind portal)
 - `MAXMIND_DB_VARIANT`: (Also called Edition ID) The database edition to used. Default is `GeoLite2-City`.
-- `MAXMIND_DB_DOWNLOAD_URL`: Database download URL (only change if your download URL differs). Default is `https://download.maxmind.com/geoip/databases/{VARIANT}/download?suffix=tar.gz`.
+- `MAXMIND_DB_DOWNLOAD_URL`: Database download URL (only change if your download URL differs). Default is `https://download.maxmind.com/geoip/databases/{VARIANT}/download?suffix=tar.gz`. `{VARIANT}` literal will be replaced by `MAXMIND_DB_VARIANT` value.
+
+<!-- -->
 
 - `DB_PATH`: Default path to save databases in. Default is `/opt/atlas/db`.
 - `DB_UPDATE_INTERVAL_SECONDS`: How often to check for updates in seconds. Default is a day (86400s).
