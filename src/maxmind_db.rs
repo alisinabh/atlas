@@ -30,15 +30,15 @@ pub struct MaxmindDBInner {
 
 impl<'de> MaxmindDB {
     pub async fn init(variant: &str, base_path: &str) -> Result<Self, Box<dyn Error>> {
-        let db_path = match Self::get_latest_variant(&variant, &base_path).await? {
+        let db_path = match Self::get_latest_variant(variant, base_path).await? {
             Some(db) => db,
             None => {
                 println!("No database found! Fetching latest from upstream...");
-                Self::fetch_latest_db(&variant, &base_path).await?
+                Self::fetch_latest_db(variant, base_path).await?
             }
         };
 
-        let inner_db = MaxmindDBInner::load(&db_path, &variant)?;
+        let inner_db = MaxmindDBInner::load(db_path, variant)?;
 
         Ok(Self {
             db: RwLock::new(inner_db),

@@ -95,7 +95,7 @@ impl<'a> LookupResult<'a> {
             .schema_type(utoipa::openapi::SchemaType::Object)
             .title(Some("AnonymousIpLookupResult"));
 
-        const BOOLEAN_FIELDS: &'static [&'static str] = &[
+        const BOOLEAN_FIELDS: &[&str] = &[
             "is_anonymous",
             "is_anonymous_vpn",
             "is_hosting_provider",
