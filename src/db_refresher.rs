@@ -21,12 +21,12 @@ pub async fn start_db_update_daemon(data: web::Data<impl UpdatableDB + 'static>,
             let duration = match data.update_db(interval).await {
                 Ok(_) => success_update_sleep,
                 Err(error) => {
-                    println!("Failed to update database {:?}", error);
+                    println!("Failed to update database {error:?}");
                     failure_update_sleep
                 }
             };
 
-            println!("Updater sleeping for {:?}", duration);
+            println!("Updater sleeping for {duration:?}");
             sleep(duration).await;
         }
     })

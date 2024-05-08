@@ -57,7 +57,7 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -
         .map(|ip_address| {
             ip_address.parse().map_err(|_| {
                 bad_request(
-                    format!("Invalid IP Address {:?}", ip_address),
+                    format!("Invalid IP Address {ip_address:?}"),
                     "INVALID_IP".to_string(),
                 )
             })
@@ -81,8 +81,7 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -
             if ip.is_special_ip() {
                 Err(bad_request(
                     format!(
-                        "IP Address is part of a special list and not allowed: {}",
-                        ip
+                        "IP Address is part of a special list and not allowed: {ip}"
                     ),
                     "SPECIAL_IP".to_string(),
                 ))

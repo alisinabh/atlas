@@ -4,7 +4,7 @@ use std::io::{Error, ErrorKind, Result};
 use atlas_rs::api_docs;
 use tokio::io::AsyncWriteExt;
 
-const SPEC_FILENAME: &'static str = "openapi-spec.json";
+const SPEC_FILENAME: &str = "openapi-spec.json";
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -27,7 +27,7 @@ async fn main() -> Result<()> {
         .parse()
         .expect("Invalid SWAGGER_UI_ENABLED value. Expected `false` or `true`");
 
-    let subcommand = env::args().skip(1).next();
+    let subcommand = env::args().nth(1);
 
     match subcommand.as_deref() {
         Some("server") | None => {
@@ -71,7 +71,7 @@ async fn main() -> Result<()> {
         }
         Some(command) => Err(Error::new(
             ErrorKind::InvalidInput,
-            format!("Invalid command: {}", command),
+            format!("Invalid command: {command}"),
         )),
     }
 }

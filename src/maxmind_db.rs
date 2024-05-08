@@ -1,4 +1,7 @@
-use crate::{db_refresher::UpdatableDB, download_utils::*};
+use crate::{
+    db_refresher::UpdatableDB,
+    download_utils::{download_with_basic_auth, extract_db, AlreadyDownloaded},
+};
 use maxminddb::{MaxMindDBError, Reader};
 use serde::Deserialize;
 use std::{
@@ -30,15 +33,15 @@ pub struct MaxmindDBInner {
 
 impl<'de> MaxmindDB {
     pub async fn init(variant: &str, base_path: &str) -> Result<Self, Box<dyn Error>> {
-        let db_path = match Self::get_latest_variant(&variant, &base_path).await? {
+        let db_path = match Self::get_latest_variant(variant, base_path).await? {
             Some(db) => db,
             None => {
                 println!("No database found! Fetching latest from upstream...");
-                Self::fetch_latest_db(&variant, &base_path).await?
+                Self::fetch_latest_db(variant, base_path).await?
             }
         };
 
-        let inner_db = MaxmindDBInner::load(&db_path, &variant)?;
+        let inner_db = MaxmindDBInner::load(db_path, variant)?;
 
         Ok(Self {
             db: RwLock::new(inner_db),
@@ -144,7 +147,7 @@ impl<'de> MaxmindDBInner {
         let filename = path.file_name().unwrap().to_str().unwrap().to_string();
         let full_path = path.to_str().unwrap().to_string();
 
-        println!("Loading database from {}", full_path);
+        println!("Loading database from {full_path}");
         let reader = Reader::open_readfile(&full_path)?;
 
         Ok(Self {

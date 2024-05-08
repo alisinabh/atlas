@@ -22,7 +22,7 @@ pub async fn init_db(
 }
 
 pub async fn start_db_refresher(maxmind_db_arc: web::Data<MaxmindDB>, update_interval: u64) {
-    db_refresher::start_db_update_daemon(maxmind_db_arc.clone(), update_interval).await;
+    db_refresher::start_db_update_daemon(maxmind_db_arc, update_interval).await;
 }
 
 pub async fn start_server(
