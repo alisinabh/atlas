@@ -71,7 +71,7 @@ async fn main() -> Result<()> {
         }
         Some(command) => Err(Error::new(
             ErrorKind::InvalidInput,
-            format!("Invalid command: {}", command),
+            format!("Invalid command: {command}"),
         )),
     }
 }

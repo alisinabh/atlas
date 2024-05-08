@@ -1,4 +1,7 @@
-use crate::{db_refresher::UpdatableDB, download_utils::*};
+use crate::{
+    db_refresher::UpdatableDB,
+    download_utils::{download_with_basic_auth, extract_db, AlreadyDownloaded},
+};
 use maxminddb::{MaxMindDBError, Reader};
 use serde::Deserialize;
 use std::{
@@ -144,7 +147,7 @@ impl<'de> MaxmindDBInner {
         let filename = path.file_name().unwrap().to_str().unwrap().to_string();
         let full_path = path.to_str().unwrap().to_string();
 
-        println!("Loading database from {}", full_path);
+        println!("Loading database from {full_path}");
         let reader = Reader::open_readfile(&full_path)?;
 
         Ok(Self {

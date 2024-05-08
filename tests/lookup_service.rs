@@ -104,7 +104,7 @@ async fn test_rejects_too_many_ips() {
     let (service, _app_data) = setup().await;
 
     let ip_addresses = (1..=51)
-        .map(|i| format!("1.1.1.{}", i))
+        .map(|i| format!("1.1.1.{i}"))
         .collect::<Vec<_>>()
         .join(",");
 

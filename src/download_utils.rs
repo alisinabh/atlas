@@ -12,7 +12,7 @@ pub struct AlreadyDownloaded;
 
 impl fmt::Display for AlreadyDownloaded {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -94,7 +94,7 @@ pub async fn extract_db(path: &str, filename: &str) -> Result<String, Box<dyn Er
     let output = command.arg("*.mmdb").output().await?;
 
     if !output.status.success() {
-        println!("{:?}", output);
+        println!("{output:?}");
         return Err("failed to extract archive".into());
     }
 
