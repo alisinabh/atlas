@@ -11,7 +11,9 @@ async fn setup() -> (
     >,
     Data<MaxmindDB>,
 ) {
-    let app_data = atlas_rs::init_db("tests-data/", "GeoIP2-City-Test").await;
+    let app_data = atlas_rs::init_db("tests-data/", "GeoIP2-City-Test")
+        .await
+        .unwrap();
     let service = test::init_service(
         App::new()
             .app_data(app_data.clone())

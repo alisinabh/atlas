@@ -32,15 +32,25 @@ async fn main() -> Result<()> {
     match subcommand.as_deref() {
         Some("server") | None => {
             // Load or Initialize MaxMind database
-            let maxmind_db_arc = atlas_rs::init_db(&db_path, &db_variant).await;
-            // Start Database Updater Daemon
-            atlas_rs::start_db_refresher(maxmind_db_arc.clone(), update_interval);
-            // Start Server
-            atlas_rs::start_server(maxmind_db_arc, &host, port, swagger_ui_enabled).await
+            let maxmind_db_arc = atlas_rs::init_db(&db_path, &db_variant)
+                .await
+                .expect("Failed to load/initialize database");
+
+            tokio::select! {
+                // Start Database Updater Daemon
+                _ = atlas_rs::start_db_refresher(maxmind_db_arc.clone(), update_interval) => {}
+                // Start Server
+                _ = atlas_rs::start_server(maxmind_db_arc, &host, port, swagger_ui_enabled) => {}
+            }
+
+            Ok(())
         }
         Some("init") => {
-            let _db = atlas_rs::init_db(&db_path, &db_variant).await;
-            println!("Initiation was successful");
+            match atlas_rs::init_db(&db_path, &db_variant).await {
+                Ok(_) => println!("Database initiation was successful"),
+                Err(reason) => print!("Failed to initialize database {reason:?}"),
+            }
+
             Ok(())
         }
         Some("spec") => {

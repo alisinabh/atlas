@@ -10,7 +10,7 @@ pub trait UpdatableDB: Send + Sync {
     ) -> impl Future<Output = Result<(), Box<dyn Error>>> + Send;
 }
 
-pub fn start_db_update_daemon(data: web::Data<impl UpdatableDB + 'static>, interval: u64) {
+pub async fn start_db_update_daemon(data: web::Data<impl UpdatableDB + 'static>, interval: u64) {
     let success_update_sleep = Duration::from_secs(interval);
     let failure_update_sleep = Duration::from_secs(5 * 60);
 
@@ -29,5 +29,7 @@ pub fn start_db_update_daemon(data: web::Data<impl UpdatableDB + 'static>, inter
             println!("Updater sleeping for {:?}", duration);
             sleep(duration).await;
         }
-    });
+    })
+    .await
+    .expect("DB Update daemon crashed");
 }
