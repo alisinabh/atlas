@@ -21,6 +21,7 @@ primary_region = 'yyz'
 
 [env]
   SWAGGER_UI_ENABLED = "true"
+  DB_UPDATE_INTERVAL_SECONDS = "259200"
 
 [mounts]
   source = "atlas_db_data"
