@@ -1,5 +1,7 @@
 # Atlas
 
+<img height="160" align="right" src="https://github.com/alisinabh/atlas/raw/main/assets/atlas-logo.png" alt="Atlas">
+
 [![Atlas CI](https://github.com/alisinabh/atlas-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/alisinabh/atlas-rs)
 
 Atlas is a geoip HTTP service built in Rust, designed to simplify IP GeoLocation by automatically
