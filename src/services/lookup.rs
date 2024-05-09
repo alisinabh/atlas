@@ -39,6 +39,7 @@ use std::net::IpAddr;
 #[utoipa::path(
     get,
     path = "/geoip/lookup/{lookup_type}/{ip_addresses}",
+    operation_id = "lookup",
     tag = "GeoIP",
     responses(
         (status = 200, description = "Ok", body = LookupResponseModel)
@@ -80,9 +81,7 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -
         .map(|&ip| {
             if ip.is_special_ip() {
                 Err(bad_request(
-                    format!(
-                        "IP Address is part of a special list and not allowed: {ip}"
-                    ),
+                    format!("IP Address is part of a special list and not allowed: {ip}"),
                     "SPECIAL_IP".to_string(),
                 ))
             } else {
