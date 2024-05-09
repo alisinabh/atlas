@@ -7,6 +7,8 @@ managing MaxMind databases. It ensures that users have up-to-date IP data withou
 manual downloads and updates. This tool is perfect for services who need reliable and fast
 IP GeoLocation lookup in their applications using a very simple HTTP API.
 
+Learn more about Atlas in [**my blog post here**](https://hackernoon.com/ip-geo-location-local-database-vs-remote-apifinding-the-middle-ground-with-atlas).
+
 ## Features
 
 - Automatic Database Updates: Automatically downloads and updates MaxMind's GeoIP databases.
