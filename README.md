@@ -14,7 +14,7 @@ Learn more about Atlas in [**my blog post here**](https://hackernoon.com/ip-geo-
 ## Features
 
 - Automatic Database Updates: Automatically downloads and updates MaxMind's GeoIP databases.
-- Dead-simple HTTP API: Atals has a very simple HTTP API that users can use and query IP Data.
+- Dead-simple HTTP API: Atlas has a very simple HTTP API that users can use and query IP Data.
 - Efficient and Low Memory Footprint: Built with Rust for safety and performance also to minimize memory footprint during database updates and normal operations.
 - Configurable: Allows users to select which edition of the MaxMind databases they want to use (e.g., GeoLite2, GeoIP2, Enterprise, ISP).
 
