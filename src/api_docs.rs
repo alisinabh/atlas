@@ -56,7 +56,7 @@ impl<'__s> utoipa::ToSchema<'__s> for LookupResult<'__s> {
     }
 }
 
-impl<'a> LookupResult<'a> {
+impl LookupResult<'_> {
     fn localized_string() -> ObjectBuilder {
         ObjectBuilder::new()
             .schema_type(utoipa::openapi::SchemaType::Object)

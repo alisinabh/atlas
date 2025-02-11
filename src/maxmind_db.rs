@@ -31,7 +31,7 @@ pub struct MaxmindDBInner {
     pub base_path: String,
 }
 
-impl<'de> MaxmindDB {
+impl MaxmindDB {
     pub async fn init(variant: &str, base_path: &str) -> Result<Self, Box<dyn Error>> {
         let db_path = match Self::get_latest_variant(variant, base_path).await? {
             Some(db) => db,
