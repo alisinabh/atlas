@@ -2,7 +2,7 @@ use crate::{
     db_refresher::UpdatableDB,
     download_utils::{download_with_basic_auth, extract_db, AlreadyDownloaded},
 };
-use maxminddb::{MaxMindDBError, Reader};
+use maxminddb::{MaxMindDbError, Reader};
 use serde::Deserialize;
 use std::{
     collections::HashMap,
@@ -138,7 +138,7 @@ impl<'de> MaxmindDBInner {
     fn load<P: AsRef<Path>, S: AsRef<str>>(
         base_path: P,
         variant: S,
-    ) -> Result<Self, MaxMindDBError> {
+    ) -> Result<Self, MaxMindDbError> {
         let mut path = base_path.as_ref().to_path_buf();
 
         path.push(variant.as_ref());
@@ -163,7 +163,7 @@ impl<'de> MaxmindDBInner {
     {
         ip_addresses
             .iter()
-            .map(|&ip| (ip, self.reader.lookup::<T>(ip).ok()))
+            .map(|&ip| (ip, self.reader.lookup::<T>(ip).ok().flatten()))
             .collect()
     }
 
