@@ -55,6 +55,7 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -
 
     let ip_addresses: Vec<IpAddr> = match ip_addresses
         .split(',')
+        .map(str::trim)
         .map(|ip_address| {
             ip_address.parse().map_err(|_| {
                 bad_request(

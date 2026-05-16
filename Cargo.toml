@@ -1,7 +1,7 @@
 [package]
 name = "atlas-rs"
-version = "0.0.5"
-edition = "2021"
+version = "0.0.6"
+edition = "2026"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
