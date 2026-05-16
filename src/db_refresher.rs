@@ -1,7 +1,7 @@
 use actix_web::web;
 use std::error::Error;
 use std::future::Future;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 pub trait UpdatableDB: Send + Sync {
     fn update_db(

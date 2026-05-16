@@ -1,8 +1,12 @@
 use crate::models::{HealthCheckModel, LookupResponseModel, LookupResult};
 use crate::services;
 use serde_json::json;
-use utoipa::openapi::{schema::AdditionalProperties, Array, ObjectBuilder};
-use utoipa::OpenApi;
+use std::borrow::Cow;
+use utoipa::openapi::{
+    Array, ObjectBuilder,
+    schema::{AdditionalProperties, Type},
+};
+use utoipa::{OpenApi, PartialSchema};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -25,55 +29,53 @@ pub fn api_doc() -> utoipa::openapi::OpenApi {
 
 // API Documentation for structs
 
-impl<'__s> utoipa::ToSchema<'__s> for HealthCheckModel {
-    fn schema() -> (
-        &'__s str,
-        utoipa::openapi::RefOr<utoipa::openapi::schema::Schema>,
-    ) {
-        (
-            "HealthCheckModel",
-            ObjectBuilder::new()
-                .schema_type(utoipa::openapi::SchemaType::String)
-                .example(Some("Ok".into()))
-                .into(),
-        )
+impl PartialSchema for HealthCheckModel {
+    fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+        ObjectBuilder::new()
+            .schema_type(Type::String)
+            .examples(["Ok"])
+            .into()
     }
 }
 
-impl<'__s> utoipa::ToSchema<'__s> for LookupResult<'__s> {
-    fn schema() -> (
-        &'__s str,
-        utoipa::openapi::RefOr<utoipa::openapi::schema::Schema>,
-    ) {
-        (
-            "LookupResult",
-            utoipa::openapi::ObjectBuilder::new()
-                .additional_properties(Some(AdditionalProperties::RefOr(
-                    utoipa::openapi::RefOr::T(LookupResult::one_of_lookup_schema()),
-                )))
-                .into(),
-        )
+impl utoipa::ToSchema for HealthCheckModel {
+    fn name() -> Cow<'static, str> {
+        Cow::Borrowed("HealthCheckModel")
+    }
+}
+
+impl PartialSchema for LookupResult<'_> {
+    fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+        utoipa::openapi::ObjectBuilder::new()
+            .additional_properties(Some(AdditionalProperties::RefOr(
+                utoipa::openapi::RefOr::T(LookupResult::one_of_lookup_schema()),
+            )))
+            .into()
+    }
+}
+
+impl utoipa::ToSchema for LookupResult<'_> {
+    fn name() -> Cow<'static, str> {
+        Cow::Borrowed("LookupResult")
     }
 }
 
 impl LookupResult<'_> {
     fn localized_string() -> ObjectBuilder {
         ObjectBuilder::new()
-            .schema_type(utoipa::openapi::SchemaType::Object)
+            .schema_type(Type::Object)
             .title(Some("LocalizedString"))
             .additional_properties(Some(AdditionalProperties::RefOr(
                 utoipa::openapi::RefOr::T(utoipa::openapi::Schema::Object(
-                    ObjectBuilder::new()
-                        .schema_type(utoipa::openapi::SchemaType::String)
-                        .into(),
+                    ObjectBuilder::new().schema_type(Type::String).into(),
                 )),
             )))
     }
 
     fn geoname_id() -> ObjectBuilder {
         ObjectBuilder::new()
-            .schema_type(utoipa::openapi::SchemaType::Integer)
-            .example(Some(serde_json::Value::Number(1234.into())))
+            .schema_type(Type::Integer)
+            .examples([serde_json::Value::Number(1234.into())])
     }
 
     fn one_of_lookup_schema() -> utoipa::openapi::Schema {
@@ -92,7 +94,7 @@ impl LookupResult<'_> {
 
     fn anonymous_ip_schema() -> ObjectBuilder {
         let mut obj = ObjectBuilder::new()
-            .schema_type(utoipa::openapi::SchemaType::Object)
+            .schema_type(Type::Object)
             .title(Some("AnonymousIpLookupResult"));
 
         const BOOLEAN_FIELDS: &[&str] = &[
@@ -108,8 +110,8 @@ impl LookupResult<'_> {
             obj = obj.property(
                 key.to_owned(),
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::Boolean)
-                    .example(Some(serde_json::Value::Bool(false))),
+                    .schema_type(Type::Boolean)
+                    .examples([serde_json::Value::Bool(false)]),
             )
         }
 
@@ -119,51 +121,51 @@ impl LookupResult<'_> {
     fn asn_schema() -> ObjectBuilder {
         ObjectBuilder::new()
             .title(Some("AsnLookupResult"))
-            .schema_type(utoipa::openapi::SchemaType::Object)
+            .schema_type(Type::Object)
             .property(
                 "autonomous_system_number",
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::Integer)
-                    .example(Some(serde_json::json!(13335))),
+                    .schema_type(Type::Integer)
+                    .examples([serde_json::json!(13335)]),
             )
             .property(
                 "autonomous_system_organization",
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::String)
-                    .example(Some("Cloudflare".into())),
+                    .schema_type(Type::String)
+                    .examples(["Cloudflare"]),
             )
     }
 
     fn connection_type_schema() -> ObjectBuilder {
         ObjectBuilder::new()
             .title(Some("ConnectionTypeLookupResult"))
-            .schema_type(utoipa::openapi::SchemaType::Object)
+            .schema_type(Type::Object)
             .property(
                 "connection_type",
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::String)
-                    .example(Some("LTE".into())),
+                    .schema_type(Type::String)
+                    .examples(["LTE"]),
             )
     }
 
     fn country_schema() -> ObjectBuilder {
         ObjectBuilder::new()
             .title(Some("CountryLookupResult"))
-            .schema_type(utoipa::openapi::SchemaType::Object)
+            .schema_type(Type::Object)
             .property(
                 "continent",
                 ObjectBuilder::new()
                     .property(
                         "code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("NA".into())),
+                            .schema_type(Type::String)
+                            .examples(["NA"]),
                     )
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "North America"}).into()),
+                            .examples([serde_json::json!({"en": "North America"})]),
                     ),
             )
             .property(
@@ -172,18 +174,18 @@ impl LookupResult<'_> {
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "is_in_european_union",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "iso_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("US".into())),
+                            .schema_type(Type::String)
+                            .examples(["US"]),
                     )
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "United States"}).into()),
+                            .examples([serde_json::json!({"en": "United States"})]),
                     ),
             )
             .property(
@@ -192,18 +194,18 @@ impl LookupResult<'_> {
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "is_in_european_union",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "iso_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("US".into())),
+                            .schema_type(Type::String)
+                            .examples(["US"]),
                     )
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "United States"}).into()),
+                            .examples([serde_json::json!({"en": "United States"})]),
                     ),
             )
             .property(
@@ -212,38 +214,35 @@ impl LookupResult<'_> {
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "is_in_european_union",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "iso_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("US".into())),
+                            .schema_type(Type::String)
+                            .examples(["US"]),
                     )
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "United States"}).into()),
+                            .examples([serde_json::json!({"en": "United States"})]),
                     )
-                    .property(
-                        "type",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::String),
-                    ),
+                    .property("type", ObjectBuilder::new().schema_type(Type::String)),
             )
             .property(
                 "traits",
                 ObjectBuilder::new()
                     .property(
                         "is_anonymous_proxy",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "is_anycast",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "is_satellite_provider",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     ),
             )
     }
@@ -251,15 +250,14 @@ impl LookupResult<'_> {
     fn city_schema() -> ObjectBuilder {
         ObjectBuilder::new()
             .title(Some("CityLookupResult"))
-            .schema_type(utoipa::openapi::SchemaType::Object)
+            .schema_type(Type::Object)
             .property(
                 "city",
                 ObjectBuilder::new()
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "names",
-                        Self::localized_string()
-                            .example(serde_json::json!({"en": "San Diego"}).into()),
+                        Self::localized_string().examples([serde_json::json!({"en": "San Diego"})]),
                     ),
             )
             .property(
@@ -268,14 +266,14 @@ impl LookupResult<'_> {
                     .property(
                         "code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("NA".into())),
+                            .schema_type(Type::String)
+                            .examples(["NA"]),
                     )
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "North America"}).into()),
+                            .examples([serde_json::json!({"en": "North America"})]),
                     ),
             )
             .property(
@@ -284,18 +282,18 @@ impl LookupResult<'_> {
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "is_in_european_union",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "iso_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("US".into())),
+                            .schema_type(Type::String)
+                            .examples(["US"]),
                     )
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "United States"}).into()),
+                            .examples([serde_json::json!({"en": "United States"})]),
                     ),
             )
             .property(
@@ -304,32 +302,32 @@ impl LookupResult<'_> {
                     .property(
                         "accuracy_radius",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::Integer)
-                            .example(Some(200.into())),
+                            .schema_type(Type::Integer)
+                            .examples([200]),
                     )
                     .property(
                         "latitude",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::Number)
-                            .example(Some((30.0406).into())),
+                            .schema_type(Type::Number)
+                            .examples([(30.0406)]),
                     )
                     .property(
                         "longitude",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::Number)
-                            .example(Some((-80.26).into())),
+                            .schema_type(Type::Number)
+                            .examples([(-80.26)]),
                     )
                     .property(
                         "metro_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::Integer)
-                            .example(Some(518.into())),
+                            .schema_type(Type::Integer)
+                            .examples([518]),
                     )
                     .property(
                         "time_zone",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("America/New_York".into())),
+                            .schema_type(Type::String)
+                            .examples(["America/New_York"]),
                     ),
             )
             .property(
@@ -337,8 +335,8 @@ impl LookupResult<'_> {
                 ObjectBuilder::new().property(
                     "code",
                     ObjectBuilder::new()
-                        .schema_type(utoipa::openapi::SchemaType::String)
-                        .example(Some("27127".into())),
+                        .schema_type(Type::String)
+                        .examples(["27127"]),
                 ),
             )
             .property(
@@ -347,18 +345,18 @@ impl LookupResult<'_> {
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "is_in_european_union",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "iso_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("US".into())),
+                            .schema_type(Type::String)
+                            .examples(["US"]),
                     )
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "United States"}).into()),
+                            .examples([serde_json::json!({"en": "United States"})]),
                     ),
             )
             .property(
@@ -367,23 +365,20 @@ impl LookupResult<'_> {
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "is_in_european_union",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "iso_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("US".into())),
+                            .schema_type(Type::String)
+                            .examples(["US"]),
                     )
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "United States"}).into()),
+                            .examples([serde_json::json!({"en": "United States"})]),
                     )
-                    .property(
-                        "type",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::String),
-                    ),
+                    .property("type", ObjectBuilder::new().schema_type(Type::String)),
             )
             .property(
                 "subdivisions",
@@ -393,13 +388,13 @@ impl LookupResult<'_> {
                         .property(
                             "iso_code",
                             ObjectBuilder::new()
-                                .schema_type(utoipa::openapi::SchemaType::String)
-                                .example(Some("NC".into())),
+                                .schema_type(Type::String)
+                                .examples(["NC"]),
                         )
                         .property(
                             "names",
                             Self::localized_string()
-                                .example(serde_json::json!({"en": "North Carolina"}).into()),
+                                .examples([serde_json::json!({"en": "North Carolina"})]),
                         ),
                 ),
             )
@@ -408,15 +403,15 @@ impl LookupResult<'_> {
                 ObjectBuilder::new()
                     .property(
                         "is_anonymous_proxy",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "is_anycast",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "is_satellite_provider",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     ),
             )
     }
@@ -424,19 +419,18 @@ impl LookupResult<'_> {
     fn enterprise_schema() -> ObjectBuilder {
         ObjectBuilder::new()
             .title(Some("EnterpriseLookupResult"))
-            .schema_type(utoipa::openapi::SchemaType::Object)
+            .schema_type(Type::Object)
             .property(
                 "city",
                 ObjectBuilder::new()
                     .property(
                         "confidence",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Integer),
+                        ObjectBuilder::new().schema_type(Type::Integer),
                     )
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "names",
-                        Self::localized_string()
-                            .example(serde_json::json!({"en": "San Diego"}).into()),
+                        Self::localized_string().examples([serde_json::json!({"en": "San Diego"})]),
                     ),
             )
             .property(
@@ -445,14 +439,14 @@ impl LookupResult<'_> {
                     .property(
                         "code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("NA".into())),
+                            .schema_type(Type::String)
+                            .examples(["NA"]),
                     )
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "North America"}).into()),
+                            .examples([serde_json::json!({"en": "North America"})]),
                     ),
             )
             .property(
@@ -460,23 +454,23 @@ impl LookupResult<'_> {
                 ObjectBuilder::new()
                     .property(
                         "confidence",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Integer),
+                        ObjectBuilder::new().schema_type(Type::Integer),
                     )
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "is_in_european_union",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "iso_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("US".into())),
+                            .schema_type(Type::String)
+                            .examples(["US"]),
                     )
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "United States"}).into()),
+                            .examples([serde_json::json!({"en": "United States"})]),
                     ),
             )
             .property(
@@ -485,32 +479,32 @@ impl LookupResult<'_> {
                     .property(
                         "accuracy_radius",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::Integer)
-                            .example(Some(200.into())),
+                            .schema_type(Type::Integer)
+                            .examples([200]),
                     )
                     .property(
                         "latitude",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::Number)
-                            .example(Some((30.0406).into())),
+                            .schema_type(Type::Number)
+                            .examples([(30.0406)]),
                     )
                     .property(
                         "longitude",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::Number)
-                            .example(Some((-80.26).into())),
+                            .schema_type(Type::Number)
+                            .examples([(-80.26)]),
                     )
                     .property(
                         "metro_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::Integer)
-                            .example(Some(518.into())),
+                            .schema_type(Type::Integer)
+                            .examples([518]),
                     )
                     .property(
                         "time_zone",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("America/New_York".into())),
+                            .schema_type(Type::String)
+                            .examples(["America/New_York"]),
                     ),
             )
             .property(
@@ -518,13 +512,13 @@ impl LookupResult<'_> {
                 ObjectBuilder::new()
                     .property(
                         "confidence",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Integer),
+                        ObjectBuilder::new().schema_type(Type::Integer),
                     )
                     .property(
                         "code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("27127".into())),
+                            .schema_type(Type::String)
+                            .examples(["27127"]),
                     ),
             )
             .property(
@@ -532,23 +526,23 @@ impl LookupResult<'_> {
                 ObjectBuilder::new()
                     .property(
                         "confidence",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Integer),
+                        ObjectBuilder::new().schema_type(Type::Integer),
                     )
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "is_in_european_union",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "iso_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("US".into())),
+                            .schema_type(Type::String)
+                            .examples(["US"]),
                     )
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "United States"}).into()),
+                            .examples([serde_json::json!({"en": "United States"})]),
                     ),
             )
             .property(
@@ -556,28 +550,25 @@ impl LookupResult<'_> {
                 ObjectBuilder::new()
                     .property(
                         "confidence",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Integer),
+                        ObjectBuilder::new().schema_type(Type::Integer),
                     )
                     .property("geoname_id", Self::geoname_id())
                     .property(
                         "is_in_european_union",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "iso_code",
                         ObjectBuilder::new()
-                            .schema_type(utoipa::openapi::SchemaType::String)
-                            .example(Some("US".into())),
+                            .schema_type(Type::String)
+                            .examples(["US"]),
                     )
                     .property(
                         "names",
                         Self::localized_string()
-                            .example(serde_json::json!({"en": "United States"}).into()),
+                            .examples([serde_json::json!({"en": "United States"})]),
                     )
-                    .property(
-                        "type",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::String),
-                    ),
+                    .property("type", ObjectBuilder::new().schema_type(Type::String)),
             )
             .property(
                 "subdivisions",
@@ -585,19 +576,19 @@ impl LookupResult<'_> {
                     ObjectBuilder::new()
                         .property(
                             "confidence",
-                            ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Integer),
+                            ObjectBuilder::new().schema_type(Type::Integer),
                         )
                         .property("geoname_id", Self::geoname_id())
                         .property(
                             "iso_code",
                             ObjectBuilder::new()
-                                .schema_type(utoipa::openapi::SchemaType::String)
-                                .example(Some("NC".into())),
+                                .schema_type(Type::String)
+                                .examples(["NC"]),
                         )
                         .property(
                             "names",
                             Self::localized_string()
-                                .example(serde_json::json!({"en": "North Carolina"}).into()),
+                                .examples([serde_json::json!({"en": "North Carolina"})]),
                         ),
                 ),
             )
@@ -606,72 +597,72 @@ impl LookupResult<'_> {
                 ObjectBuilder::new()
                     .property(
                         "is_anonymous_proxy",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "is_anycast",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     )
                     .property(
                         "is_satellite_provider",
-                        ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Boolean),
+                        ObjectBuilder::new().schema_type(Type::Boolean),
                     ),
             )
     }
 
     fn density_income_schema() -> ObjectBuilder {
         ObjectBuilder::new()
-            .schema_type(utoipa::openapi::SchemaType::Object)
+            .schema_type(Type::Object)
             .title(Some("DenityIncomeLookupResult"))
             .property(
                 "average_income",
-                ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Integer),
+                ObjectBuilder::new().schema_type(Type::Integer),
             )
             .property(
                 "population_density",
-                ObjectBuilder::new().schema_type(utoipa::openapi::SchemaType::Integer),
+                ObjectBuilder::new().schema_type(Type::Integer),
             )
     }
 
     fn isp_schema() -> ObjectBuilder {
         ObjectBuilder::new()
-            .schema_type(utoipa::openapi::SchemaType::Object)
+            .schema_type(Type::Object)
             .title(Some("IspLookupResult"))
             .property(
                 "autonomous_system_number",
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::Integer)
-                    .example(Some(serde_json::json!(13335))),
+                    .schema_type(Type::Integer)
+                    .examples([serde_json::json!(13335)]),
             )
             .property(
                 "autonomous_system_organization",
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::String)
-                    .example(Some("Cloudflare".into())),
+                    .schema_type(Type::String)
+                    .examples(["Cloudflare"]),
             )
             .property(
                 "isp",
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::String)
-                    .example(Some(json!("Rogers"))),
+                    .schema_type(Type::String)
+                    .examples([json!("Rogers")]),
             )
             .property(
                 "mobile_country_code",
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::String)
-                    .example(Some(json!("+98"))),
+                    .schema_type(Type::String)
+                    .examples([json!("+98")]),
             )
             .property(
                 "mobile_network_code",
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::String)
-                    .example(Some(json!("C101"))),
+                    .schema_type(Type::String)
+                    .examples([json!("C101")]),
             )
             .property(
                 "organization",
                 ObjectBuilder::new()
-                    .schema_type(utoipa::openapi::SchemaType::String)
-                    .example(Some(json!("ACME"))),
+                    .schema_type(Type::String)
+                    .examples([json!("ACME")]),
             )
     }
 }

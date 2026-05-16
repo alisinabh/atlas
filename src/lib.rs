@@ -8,7 +8,7 @@ pub mod services;
 
 use std::error::Error;
 
-use actix_web::{web, App, HttpServer};
+use actix_web::{App, HttpServer, web};
 use maxmind_db::MaxmindDB;
 use utoipa_swagger_ui::SwaggerUi;
 

@@ -1,6 +1,6 @@
 use actix_http::body::MessageBody;
 use actix_web::dev::{Service, ServiceResponse};
-use actix_web::{test, web::Data, App};
+use actix_web::{App, test, web::Data};
 use atlas_rs::maxmind_db::MaxmindDB;
 
 struct SetupResult<T> {

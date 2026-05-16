@@ -1,4 +1,6 @@
-use actix_web::{get, HttpResponse, Responder};
+use crate::models::HealthCheckModel;
+
+use actix_web::{HttpResponse, Responder, get};
 
 /// Returns 200 when GeoIP service is up and running
 #[utoipa::path(

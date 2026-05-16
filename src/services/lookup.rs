@@ -3,7 +3,7 @@ use crate::maxmind_db::MaxmindDB;
 use crate::models::{LookupResponseModel, LookupResult};
 use crate::network_utils::SpecialIPCheck;
 
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{HttpResponse, Responder, get, web};
 use std::net::IpAddr;
 
 /// Lookup information on many IP addresses at once
@@ -110,7 +110,7 @@ async fn handle(data: web::Data<MaxmindDB>, path: web::Path<(String, String)>) -
             return bad_request(
                 "invalid lookup_type".to_string(),
                 "INVALID_LOOKUP_TYPE".to_string(),
-            )
+            );
         }
     };
 

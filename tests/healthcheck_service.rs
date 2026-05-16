@@ -1,4 +1,4 @@
-use actix_web::{body::MessageBody, test, web, App};
+use actix_web::{App, body::MessageBody, test, web};
 
 #[actix_web::test]
 async fn test_healthcheck_endpoint() {
