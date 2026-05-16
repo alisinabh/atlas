@@ -1,6 +1,6 @@
 use crate::{
     db_refresher::UpdatableDB,
-    download_utils::{download_with_basic_auth, extract_db, AlreadyDownloaded},
+    download_utils::{AlreadyDownloaded, download_with_basic_auth, extract_db},
 };
 use maxminddb::{MaxMindDbError, Reader};
 use serde::Deserialize;
@@ -163,7 +163,16 @@ impl<'de> MaxmindDBInner {
     {
         ip_addresses
             .iter()
-            .map(|&ip| (ip, self.reader.lookup::<T>(ip).ok().flatten()))
+            .map(|&ip| {
+                let result = self
+                    .reader
+                    .lookup(ip)
+                    .and_then(|lookup_result| lookup_result.decode())
+                    .ok()
+                    .flatten();
+
+                (ip, result)
+            })
             .collect()
     }
 
