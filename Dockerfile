@@ -1,6 +1,6 @@
-ARG DEBIAN_RELEASE=bookworm
+ARG DEBIAN_RELEASE=trixie
 
-FROM rust:1-$DEBIAN_RELEASE AS builder
+FROM rust:1.99.1-$DEBIAN_RELEASE AS builder
 
 WORKDIR /app
 

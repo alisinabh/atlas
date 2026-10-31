@@ -68,7 +68,7 @@ that atlas looks into.
 - `MAXMIND_ACCOUNT_ID`: Your Maxmind Account ID used to download the database. **Required** (Get GeoLite2 databses for free at https://dev.maxmind.com/geoip/geolite2-free-geolocation-data)
 - `MAXMIND_LICENSE_KEY`: Your Maxmind license key used to download the database. **Required** (Generate a License Key from maxmind portal)
 - `MAXMIND_DB_VARIANT`: (Also called Edition ID) The database edition to used. Default is `GeoLite2-City`.
-- `MAXMIND_DB_DOWNLOAD_URL`: Database download URL (only change if your download URL differs). Default is `https://download.maxmind.com/geoip/databases/{VARIANT}/download?suffix=tar.gz`. `{VARIANT}` literal will be replaced by `MAXMIND_DB_VARIANT` value.
+- `MAXMIND_DB_DOWNLOAD_URL`: Database download URL (only change if your download URL differs). Default is `https://download.maxmind.com/geoip/databases/{VARIANT}/download?suffix=tar.gz`. `{VARIANT}` literal will be replaced by `MAXMIND_DB_VARIANT` value. Must use `https` (plain `http` is only allowed for `localhost`).
 
 <!-- -->
 

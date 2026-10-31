@@ -15,20 +15,31 @@ path = "src/main.rs"
 [dependencies]
 actix-web = "4"
 actix-http = "3"
+arc-swap = "1"
 futures-util = "0.3"
-maxminddb = "0.28"
+maxminddb = "0.32"
 reqwest = { version = "0.13", features = ["stream"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
-utoipa = "5"
-utoipa-swagger-ui = { version = "9", features = ["actix-web"] }
+utoipa = "6"
+utoipa-swagger-ui = { version = "10", features = ["actix-web"] }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["full", "test-util"] }
+wiremock = "0.6"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true
 
 [lints.rust]
 unsafe_code = "forbid"
 
 [lints.clippy]
 enum_glob_use = "deny"
-uninlined-format-args = "warn"
-needless-pass-by-value = "warn"
-wildcard-imports = "warn"
+uninlined_format_args = "warn"
+needless_pass_by_value = "warn"
+wildcard_imports = "warn"
