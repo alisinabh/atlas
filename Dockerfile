@@ -9,9 +9,14 @@ COPY Cargo.* ./
 
 RUN cargo build --release
 
-FROM debian:$DEBIAN_RELEASE-slim
+FROM debian:$DEBIAN_RELEASE-slim AS runtime
 
-RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+# Apply Debian security updates newer than the base image, so a stale base tag
+# doesn't ship known CVEs. Build with `--pull --no-cache-filter runtime` to refresh.
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/atlas /usr/local/bin/
 
