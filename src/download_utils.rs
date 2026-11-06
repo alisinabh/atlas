@@ -1,11 +1,18 @@
+use crate::BoxError;
 use core::fmt;
 use futures_util::StreamExt;
 use std::env;
-use std::error::Error;
-use std::path::PathBuf;
+use std::net::IpAddr;
+use std::path::Path;
+use std::time::Duration;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
+
+pub const ARCHIVE_EXT: &str = ".tar.gz";
+
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+const READ_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug)]
 pub struct AlreadyDownloaded;
@@ -18,13 +25,60 @@ impl fmt::Display for AlreadyDownloaded {
 
 impl std::error::Error for AlreadyDownloaded {}
 
+/// Only allows https, or http to loopback hosts, so credentials are never sent in clear text
+pub fn validate_download_url(url: &str) -> Result<reqwest::Url, BoxError> {
+    let url = reqwest::Url::parse(url)?;
+
+    let is_loopback = match url.host_str() {
+        Some("localhost") => true,
+        Some(host) => host
+            .trim_start_matches('[')
+            .trim_end_matches(']')
+            .parse::<IpAddr>()
+            .is_ok_and(|ip| ip.is_loopback()),
+        None => false,
+    };
+
+    match url.scheme() {
+        "https" => Ok(url),
+        "http" if is_loopback => Ok(url),
+        scheme => Err(format!("insecure or unsupported URL scheme {scheme:?}, use https").into()),
+    }
+}
+
+/// Ensures the server supplied archive name can't escape the download directory
+pub fn sanitize_archive_filename(filename: &str) -> Result<String, BoxError> {
+    let is_plain_name = Path::new(filename)
+        .file_name()
+        .is_some_and(|name| name == filename);
+
+    if !is_plain_name
+        || filename.starts_with('.')
+        || !filename.ends_with(ARCHIVE_EXT)
+        || filename.len() == ARCHIVE_EXT.len()
+    {
+        return Err(format!("Invalid archive filename {filename:?}").into());
+    }
+
+    Ok(filename.to_string())
+}
+
+/// Downloads the archive into `download_dir` and returns its filename.
+///
+/// Fails with `AlreadyDownloaded` if `extracted_dir` already contains the extracted archive.
 pub async fn download_with_basic_auth(
     url: &str,
-    output_path: &str,
+    download_dir: &Path,
+    extracted_dir: &Path,
     username: &str,
     password: Option<&str>,
-) -> Result<String, Box<dyn Error>> {
-    let response = reqwest::Client::new()
+) -> Result<String, BoxError> {
+    let url = validate_download_url(url)?;
+
+    let response = reqwest::Client::builder()
+        .connect_timeout(CONNECT_TIMEOUT)
+        .read_timeout(READ_TIMEOUT)
+        .build()?
         .get(url)
         .basic_auth(username, password)
         .send()
@@ -48,23 +102,17 @@ pub async fn download_with_basic_auth(
                 }
             })
         })
-        .ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Content-Disposition header missing or invalid",
-            )
-        })?
-        .to_string();
+        .ok_or("Content-Disposition header missing or invalid")?;
 
-    let full_path = PathBuf::from(output_path).join(&filename);
+    let filename = sanitize_archive_filename(filename)?;
 
-    let dir_path = PathBuf::from(output_path).join(filename.trim_end_matches(".tar.gz"));
-
-    if tokio::fs::try_exists(&dir_path).await? {
+    if tokio::fs::try_exists(extracted_dir.join(filename.trim_end_matches(ARCHIVE_EXT))).await? {
         return Err(AlreadyDownloaded.into());
     }
 
-    println!("Saving database in {}", full_path.to_str().unwrap());
+    let full_path = download_dir.join(&filename);
+
+    println!("Saving database in {}", full_path.display());
 
     // Stream the body of the response
     let mut file = File::create(full_path).await?;
@@ -80,12 +128,13 @@ pub async fn download_with_basic_auth(
     Ok(filename)
 }
 
-pub async fn extract_db(path: &str, filename: &str) -> Result<String, Box<dyn Error>> {
-    let full_path = PathBuf::from(path).join(filename);
+/// Extracts the `.mmdb` files of `dir/filename` into `dir` and removes the archive
+pub async fn extract_db(dir: &Path, filename: &str) -> Result<(), BoxError> {
+    let full_path = dir.join(filename);
 
     let mut command = Command::new("tar");
 
-    command.arg("xvfz").arg(&full_path).arg("-C").arg(path);
+    command.arg("xfz").arg(&full_path).arg("-C").arg(dir);
 
     if env::consts::OS != "macos" {
         command.arg("--wildcards");
@@ -94,18 +143,14 @@ pub async fn extract_db(path: &str, filename: &str) -> Result<String, Box<dyn Er
     let output = command.arg("*.mmdb").output().await?;
 
     if !output.status.success() {
-        println!("{output:?}");
-        return Err("failed to extract archive".into());
+        return Err(format!(
+            "Failed to extract archive: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        )
+        .into());
     }
 
     tokio::fs::remove_file(full_path).await?;
 
-    let result = match env::consts::OS {
-        "macos" => output.stderr,
-        _ => output.stdout,
-    };
-
-    let extracted_filename = String::from_utf8(result)?.replace('\n', "")[2..].to_string();
-
-    Ok(extracted_filename)
+    Ok(())
 }

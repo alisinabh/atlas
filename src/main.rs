@@ -1,55 +1,46 @@
-use std::env;
 use std::io::{Error, ErrorKind, Result};
 
 use atlas_rs::api_docs;
+use atlas_rs::config::Config;
 use tokio::io::AsyncWriteExt;
 
 const SPEC_FILENAME: &str = "openapi-spec.json";
 
 #[actix_web::main]
 async fn main() -> Result<()> {
-    let db_variant = env::var("MAXMIND_DB_VARIANT").unwrap_or("GeoLite2-City".to_string());
-    let db_path = env::var("DB_PATH").unwrap_or("/opt/atlas/db".to_string());
-
-    let update_interval: u64 = env::var("DB_UPDATE_INTERVAL_SECONDS")
-        .unwrap_or("86400".to_string())
-        .parse()
-        .expect("Invalid DB_UPDATE_INTERVAL_SECONDS value");
-
-    let host = env::var("HOST").unwrap_or("0.0.0.0".to_string());
-    let port: u16 = env::var("PORT")
-        .unwrap_or("8080".to_string())
-        .parse()
-        .expect("Invalid PORT value");
-
-    let swagger_ui_enabled: bool = env::var("SWAGGER_UI_ENABLED")
-        .unwrap_or("false".to_string())
-        .parse()
-        .expect("Invalid SWAGGER_UI_ENABLED value. Expected `false` or `true`");
-
-    let subcommand = env::args().nth(1);
+    let subcommand = std::env::args().nth(1);
 
     match subcommand.as_deref() {
         Some("server") | None => {
+            let config = load_config()?;
+
             // Load or Initialize MaxMind database
-            let maxmind_db_arc = atlas_rs::init_db(&db_path, &db_variant)
-                .await
-                .expect("Failed to load/initialize database");
+            let maxmind_db_arc =
+                atlas_rs::init_db(&config.db_path, &config.db_variant, config.download)
+                    .await
+                    .map_err(|reason| {
+                        Error::other(format!("Failed to load/initialize database: {reason}"))
+                    })?;
 
             tokio::select! {
                 // Start Database Updater Daemon
-                _ = atlas_rs::start_db_refresher(maxmind_db_arc.clone(), update_interval) => {}
+                _ = atlas_rs::start_db_refresher(maxmind_db_arc.clone(), config.update_interval) => {}
                 // Start Server
-                _ = atlas_rs::start_server(maxmind_db_arc, &host, port, swagger_ui_enabled) => {}
+                _ = atlas_rs::start_server(maxmind_db_arc, &config.host, config.port, config.swagger_ui_enabled) => {}
             }
 
             Ok(())
         }
         Some("init") => {
-            match atlas_rs::init_db(&db_path, &db_variant).await {
-                Ok(_) => println!("Database initiation was successful"),
-                Err(reason) => print!("Failed to initialize database {reason:?}"),
-            }
+            let config = load_config()?;
+
+            atlas_rs::init_db(&config.db_path, &config.db_variant, config.download)
+                .await
+                .map_err(|reason| {
+                    Error::other(format!("Failed to initialize database: {reason}"))
+                })?;
+
+            println!("Database initiation was successful");
 
             Ok(())
         }
@@ -74,4 +65,8 @@ async fn main() -> Result<()> {
             format!("Invalid command: {command}"),
         )),
     }
+}
+
+fn load_config() -> Result<Config> {
+    Config::from_env().map_err(|reason| Error::new(ErrorKind::InvalidInput, reason))
 }
